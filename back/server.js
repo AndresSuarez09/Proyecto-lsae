@@ -1,19 +1,43 @@
 require('dotenv').config();
 const express = require('express');
-const authRoutes = require('./routes/authRoutes');
+const cors = require('cors');
+const pool = require('./db');      // Tu conexión PostgreSQL
+const authRoutes = require('./routes/authRoutes');  //añadido
+const solicitudesRoutes = require('./routes/solicitudesRoutes'); //añadido
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
-// Middleware to parse JSON
-app.use(express.json());
 
+// 1) Middlewares
+app.use(cors());                   // Permite peticiones desde cualquier origen
+app.use(express.json());           // Para entender JSON en los cuerpos de petición
+app.use(express.static('public')); // Sirve forms.html desde back/public
+
+//1.1) Usar rutas de autenticación
+app.use('/api/auth', authRoutes);  //añadido
+//Ruta para solicitudes
+app.use('/api/auth', solicitudesRoutes); //añadido
+// 2) Ruta de prueba
 app.get('/', (req, res) => {
-    res.send('Back-end server is running!');
+  res.send('Back-end server is running!');
 });
 
-// Use authentication routes
-app.use('/api/auth', authRoutes);
+// 3) Endpoint para crear un empleado
+app.post('/employees', async (req, res) => {
+  const { nombre, correo } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO lae_user (nombre, user_email) VALUES ($1, $2) RETURNING *',
+      [nombre, correo]
+    );
+    res.json({ success: true, empleado: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
+// 4) Arrancar servidor
 app.listen(port, () => {
-    console.log(`Back-end server running at http://localhost:${port}`);
+  console.log(`Back-end server running at http://localhost:${port}`);
 });

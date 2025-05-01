@@ -1,3 +1,7 @@
+require('dotenv').config();  //cargar variables del .env
+console.log('Usuario:', process.env.DB_USER);
+console.log('Contraseña:', process.env.DB_PASSWORD);
+
 const { Pool } = require('pg');
 
 // Create a new Pool instance to manage database connections

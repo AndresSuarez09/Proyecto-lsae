@@ -7,7 +7,9 @@ export default function Navbar() {
       {/* Test with inline styles first */}
       <Link to="/" style={{ marginRight: '1rem' }}>Home</Link>
       <Link to="/login" style={{ marginRight: '1rem' }}>Login</Link>
-      <Link to="/certificates">Certificates</Link>
+      <Link to="/certificates" style={{ marginRight: '1rem' }}>Certificates</Link> 
+      <Link to="/register" style={{ marginRight: '1rem' }}>Register</Link>
+      <Link to="/solicitudes" style={{ marginRight: '1rem' }}>Solicitudes</Link>
     </nav>
   );
 }
