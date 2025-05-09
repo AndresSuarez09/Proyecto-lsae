@@ -1,7 +1,7 @@
 // src/App.jsx
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
+import Empleados from './pages/Empleados';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Certificates from './pages/Certificates';
@@ -14,7 +14,7 @@ function App() {
       <Navbar />
       <main style={{ padding: '2rem' }}>  {/* Added container for content */}
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Empleados />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/certificates" element={<Certificates />} />

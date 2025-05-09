@@ -6,17 +6,22 @@ const authRoutes = require('./routes/authRoutes');  //añadido
 const solicitudesRoutes = require('./routes/solicitudesRoutes'); //añadido
 const app = express();
 const port = process.env.PORT || 3001;
+const fileRoutes = require('./routes/fileRoutes'); //carga y descarga archivos
+const path = require('path'); //añadido
 
 
 // 1) Middlewares
 app.use(cors());                   // Permite peticiones desde cualquier origen
 app.use(express.json());           // Para entender JSON en los cuerpos de petición
 app.use(express.static('public')); // Sirve forms.html desde back/public
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); //añadido para servir archivos
+app.use('/api/files', fileRoutes); //añadido para manejar subida de archivos
+
 
 //1.1) Usar rutas de autenticación
 app.use('/api/auth', authRoutes);  //añadido
 //Ruta para solicitudes
-app.use('/api/auth', solicitudesRoutes); //añadido
+app.use('/api/Solicitudes', solicitudesRoutes); //añadido
 // 2) Ruta de prueba
 app.get('/', (req, res) => {
   res.send('Back-end server is running!');
