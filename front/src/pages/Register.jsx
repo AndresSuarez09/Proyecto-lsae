@@ -5,6 +5,7 @@ export default function Register() {
     username: '',
     password: '',
     role: '',
+    name: '',
   });
 
   const [message, setMessage] = useState('');
@@ -43,17 +44,27 @@ export default function Register() {
 
   return (
     <div>
-      <h2>Registro de Usuario</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Correo electrónico:</label>
-          <input
-            type="email"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
+    <h2>Registro de Usuario</h2>
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>Nombre completo:</label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+      </div>
+      <div>
+        <label>Correo electrónico:</label>
+        <input
+          type="email"
+          name="username"
+          value={formData.username}
+          onChange={handleChange}
+          required
+        />
         </div>
         <div>
           <label>Contraseña:</label>

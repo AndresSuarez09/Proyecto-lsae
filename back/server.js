@@ -1,33 +1,40 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db');      // Tu conexión PostgreSQL
-const authRoutes = require('./routes/authRoutes');  //añadido
-const solicitudesRoutes = require('./routes/solicitudesRoutes'); //añadido
+const pool = require('./db'); // Tu conexión PostgreSQL
+const authRoutes = require('./routes/authRoutes'); // Rutas de autenticación
+const solicitudesRoutes = require('./routes/solicitudesRoutes'); // Rutas de solicitudes
+const fileRoutes = require('./routes/fileRoutes'); // Carga y descarga archivos
+const userRoutes = require('./routes/userRoutes'); // Rutas para usuarios: crear/ver perfil
+
 const app = express();
 const port = process.env.PORT || 3001;
-const fileRoutes = require('./routes/fileRoutes'); //carga y descarga archivos
-const path = require('path'); //añadido
-
+const path = require('path');
 
 // 1) Middlewares
-app.use(cors());                   // Permite peticiones desde cualquier origen
-app.use(express.json());           // Para entender JSON en los cuerpos de petición
-app.use(express.static('public')); // Sirve forms.html desde back/public
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); //añadido para servir archivos
-app.use('/api/files', fileRoutes); //añadido para manejar subida de archivos
+app.use(express.static(path.join(__dirname, 'public')));//29demayo
+
+app.use(cors()); // Permite peticiones desde cualquier origen
+app.use(express.json()); // Para entender JSON en los cuerpos de petición
+//app.use(express.static('public')); // Sirve forms.html desde back/public
+app.use(express.static(path.join(__dirname, '../front/public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Para servir archivos subidos
+
+app.use('/test', express.static(path.join(__dirname, 'web-test'))); //prueba29mayo
 
 
-//1.1) Usar rutas de autenticación
-app.use('/api/auth', authRoutes);  //añadido
-//Ruta para solicitudes
-app.use('/api/Solicitudes', solicitudesRoutes); //añadido
-// 2) Ruta de prueba
+// 2) Registrar rutas
+app.use('/api/auth', authRoutes); // Rutas de login y registro
+app.use('/api/Solicitudes', solicitudesRoutes); // Rutas de solicitudes
+app.use('/api/files', fileRoutes); // Manejo de archivos
+app.use('/api/users', userRoutes); // Rutas para crear/ver usuarios (nuevas)
+
+// 3) Ruta de prueba
 app.get('/', (req, res) => {
   res.send('Back-end server is running!');
 });
 
-// 3) Endpoint para crear un empleado
+// 4) Ruta temporal para crear empleado (a reemplazar con control de roles luego)
 app.post('/employees', async (req, res) => {
   const { nombre, correo } = req.body;
   try {
@@ -42,7 +49,7 @@ app.post('/employees', async (req, res) => {
   }
 });
 
-// 4) Arrancar servidor
+// 5) Arrancar servidor
 app.listen(port, () => {
   console.log(`Back-end server running at http://localhost:${port}`);
 });

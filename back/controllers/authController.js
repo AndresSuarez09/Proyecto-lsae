@@ -2,31 +2,36 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 
+// -----------------------------
+// REGISTRO DE USUARIO
+// -----------------------------
 const registerUser = async (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password, role, name } = req.body;
 
     try {
-        // Check if the user already exists
+        // [ANTES] Verificaba si el usuario ya existía
         const userExists = await pool.query('SELECT * FROM lae_user WHERE user_email = $1', [username]);
         if (userExists.rows.length > 0) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Hash the password
+        // [ANTES] Hash de la contraseña
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // Insert the new user into the database
+        // [ANTES] Insertar el usuario con id_cargo como "role"
+        // [DESPUÉS] Asegurarse de que se guarda correctamente
         const newUser = await pool.query(
-            'INSERT INTO lae_user (id_cargo, user_email, user_password) VALUES ($1, $2, $3) RETURNING *',
-            [role, username, passwordHash]
+            'INSERT INTO lae_user (id_cargo, user_email, user_password, user_name) VALUES ($1, $2, $3, $4) RETURNING *',
+            [role, username, passwordHash, name]
         );
 
-        // Generate a JWT
+        // [ANTES] Generaba el JWT solo con el id
+        // [DESPUÉS] Incluye el rol también en el token
         const payload = {
             user: {
-                id: newUser.rows[0].id,
-                role: newUser.rows[0].role,
+                id: newUser.rows[0].id_user,
+                role: newUser.rows[0].id_cargo, // <- corregido aquí
             },
         };
 
@@ -45,28 +50,31 @@ const registerUser = async (req, res) => {
     }
 };
 
+// -----------------------------
+// INICIO DE SESIÓN
+// -----------------------------
 const loginUser = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Check if the user exists
-        
+        // [ANTES] Verificaba existencia del usuario
         const user = await pool.query('SELECT * FROM lae_user WHERE user_email = $1', [username]);
         if (user.rows.length === 0) {
-            return res.status(400).json({ message: 'Invalid user name'+username });
+            return res.status(400).json({ message: 'Usuario no encontrado: ' + username });
         }
 
-        // Compare passwords
+        // [ANTES] Comparaba la contraseña con bcrypt
         const isMatch = await bcrypt.compare(password, user.rows[0].user_password);
         if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials password'+user_password });
+            return res.status(400).json({ message: 'Credenciales inválidas' });
         }
 
-        // Generate a JWT
+        // [ANTES] JWT solo contenía ID
+        // [DESPUÉS] Incluye el rol del usuario
         const payload = {
             user: {
-                id: user.rows[0].id,
-                role: user.rows[0].role,
+                id: user.rows[0].id_user,
+                role: user.rows[0].id_cargo, // <- asegúrate que sea el nombre del campo de rol
             },
         };
 
@@ -85,6 +93,10 @@ const loginUser = async (req, res) => {
     }
 };
 
-// Export the functions
-module.exports = { registerUser, loginUser };
-
+// -----------------------------
+// EXPORTACIÓN
+// -----------------------------
+module.exports = {
+    registerUser,
+    loginUser
+};

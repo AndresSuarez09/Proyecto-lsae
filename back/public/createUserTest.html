@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Prueba de Creación de Usuario</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    input, select, button {
+      margin: 10px 0;
+      width: 100%;
+      padding: 8px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Crear Usuario (Prueba de Roles)</h2>
+
+  <label for="token">Token JWT:</label>
+  <input type="text" id="token" placeholder="Pega aquí el token JWT del usuario logueado" />
+
+  <label for="username">Correo electrónico (username):</label>
+  <input type="email" id="username" />
+
+  <label for="name">Nombre:</label>
+  <input type="text" id="name" />
+
+  <label for="password">Contraseña:</label>
+  <input type="password" id="password" />
+
+  <label for="role">Rol a asignar:</label>
+  <select id="role">
+    <option value="1">Gerente</option>
+    <option value="2">Administrador</option>
+    <option value="3">Empleado</option>
+  </select>
+
+  <button onclick="crearUsuario()">Crear Usuario</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    async function crearUsuario() {
+      const token = document.getElementById('token').value.trim();
+      const username = document.getElementById('username').value;
+      const name = document.getElementById('name').value;
+      const password = document.getElementById('password').value;
+      const role = parseInt(document.getElementById('role').value);
+
+      if (!token) {
+        alert('Debes pegar un token JWT válido');
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3001/api/users/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ username, password, role, name })
+        });
+
+        const data = await response.json();
+        const resultado = document.getElementById('resultado');
+
+        if (response.ok) {
+          resultado.innerHTML = `<p class="success">✅ Usuario creado: ${data.user.user_email}</p>`;
+        } else {
+          resultado.innerHTML = `<p class="error">❌ Error: ${data.message}</p>`;
+        }
+      } catch (error) {
+        document.getElementById('resultado').innerHTML = `<p class="error">❌ Error de red</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
