@@ -12,16 +12,8 @@ const port = process.env.PORT || 3001;
 const path = require('path');
 
 // 1) Middlewares
-app.use(express.static(path.join(__dirname, 'public')));//29demayo
-
 app.use(cors()); // Permite peticiones desde cualquier origen
 app.use(express.json()); // Para entender JSON en los cuerpos de petición
-//app.use(express.static('public')); // Sirve forms.html desde back/public
-app.use(express.static(path.join(__dirname, '../front/public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Para servir archivos subidos
-
-app.use('/test', express.static(path.join(__dirname, 'web-test'))); //prueba29mayo
-
 
 // 2) Registrar rutas
 app.use('/api/auth', authRoutes); // Rutas de login y registro
@@ -29,12 +21,18 @@ app.use('/api/Solicitudes', solicitudesRoutes); // Rutas de solicitudes
 app.use('/api/files', fileRoutes); // Manejo de archivos
 app.use('/api/users', userRoutes); // Rutas para crear/ver usuarios (nuevas)
 
-// 3) Ruta de prueba
+// 3) Rutas estáticas (se colocan DESPUÉS de las rutas API)
+app.use(express.static(path.join(__dirname, 'public')));//29demayo
+app.use(express.static(path.join(__dirname, '../front/public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Para servir archivos subidos
+app.use('/test', express.static(path.join(__dirname, 'web-test'))); //prueba29mayo
+
+// 4) Ruta de prueba
 app.get('/', (req, res) => {
   res.send('Back-end server is running!');
 });
 
-// 4) Ruta temporal para crear empleado (a reemplazar con control de roles luego)
+// 5) Ruta temporal para crear empleado (a reemplazar con control de roles luego)
 app.post('/employees', async (req, res) => {
   const { nombre, correo } = req.body;
   try {
@@ -49,7 +47,7 @@ app.post('/employees', async (req, res) => {
   }
 });
 
-// 5) Arrancar servidor
+// 6) Arrancar servidor
 app.listen(port, () => {
   console.log(`Back-end server running at http://localhost:${port}`);
 });
