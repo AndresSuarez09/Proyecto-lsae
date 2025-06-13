@@ -11,6 +11,7 @@ const pool = new Pool({
     database: process.env.DB_NAME, // Database name
     password: process.env.DB_PASSWORD, // PostgreSQL password
     port: process.env.DB_PORT,             // PostgreSQL port (default: 5432)
+    ssl: { rejectUnauthorized: false }
 });
 
 // Test the database connection

@@ -22,7 +22,7 @@ export default function Empleados() {
     formData.append('archivo', archivo);
 
     try {
-      const res = await axios.post('http://localhost:3001/api/files/upload', formData, {
+      const res = await axios.post('https://proyecto-lsae-production.up.railway.app/api/files/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -51,7 +51,7 @@ export default function Empleados() {
         <div>
           <p>Archivo disponible en:</p>
           <a
-            href={`http://localhost:3001/uploads/${archivoSubido.filename}`}
+            href={`https://proyecto-lsae-production.up.railway.app/uploads/${archivoSubido.filename}`}
             target="_blank"
             rel="noopener noreferrer"
           >
