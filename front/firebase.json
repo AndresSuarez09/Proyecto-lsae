@@ -9,7 +9,7 @@
     "redirects": [
       {
         "source": "/api/**",
-        "destination": "https://proyecto-lsae-production.up.railway.app/api/:**",
+        "destination": "https://proyecto-lsae-production.up.railway.app/api/**",
         "type": 301
       }
     ],
