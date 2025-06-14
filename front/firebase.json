@@ -6,14 +6,11 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "redirects": [
+    "rewrites": [
       {
         "source": "/api/**",
-        "destination": "https://proyecto-lsae-production.up.railway.app/api/**",
-        "type": 301
-      }
-    ],
-    "rewrites": [
+        "destination": "https://proyecto-lsae-production.up.railway.app/api/**"
+      },
       {
         "source": "**",
         "destination": "/index.html"
