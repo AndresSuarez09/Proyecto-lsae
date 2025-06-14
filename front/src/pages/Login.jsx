@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../api'; // Asegúrate de que la ruta sea correcta
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -19,22 +20,15 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const res = await fetch('https://proyecto-lsae-production.up.railway.app/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const res = await api.post('/auth/login', formData);
 
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
+      if (res.status === 200) {
+        localStorage.setItem('token', res.data.token);
         setMessage('Inicio de sesión exitoso');
-        // Puedes redirigir con: window.location.href = '/empleados';
+        // Si quieres redirigir:
+        // window.location.href = '/empleados';
       } else {
-        setMessage(data.message || 'Error al iniciar sesión');
+        setMessage(res.data.message || 'Error al iniciar sesión');
       }
     } catch (err) {
       console.error(err);
