@@ -1,38 +1,42 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db'); // Tu conexión PostgreSQL
-const authRoutes = require('./routes/authRoutes'); // Rutas de autenticación
-const solicitudesRoutes = require('./routes/solicitudesRoutes'); // Rutas de solicitudes
-const fileRoutes = require('./routes/fileRoutes'); // Carga y descarga archivos
-const userRoutes = require('./routes/userRoutes'); // Rutas para usuarios: crear/ver perfil
+const pool = require('./db');
+const authRoutes = require('./routes/authRoutes');
+const solicitudesRoutes = require('./routes/solicitudesRoutes');
+const fileRoutes = require('./routes/fileRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const port = process.env.PORT || 3001;
 const path = require('path');
 
 // 1) Middlewares
-app.use(cors()); // Permite peticiones desde cualquier origen
+app.use(cors({
+  origin: ['https://lubrisolae.web.app', 'http://localhost:5173'], // Frontend producción y desarrollo
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
+  credentials: true
+}));
 app.use(express.json()); // Para entender JSON en los cuerpos de petición
 
 // 2) Registrar rutas
-app.use('/api/auth', authRoutes); // Rutas de login y registro
-app.use('/api/Solicitudes', solicitudesRoutes); // Rutas de solicitudes
-app.use('/api/files', fileRoutes); // Manejo de archivos
-app.use('/api/users', userRoutes); // Rutas para crear/ver usuarios (nuevas)
+app.use('/api/auth', authRoutes);
+app.use('/api/Solicitudes', solicitudesRoutes);
+app.use('/api/files', fileRoutes);
+app.use('/api/users', userRoutes);
 
-// 3) Rutas estáticas (se colocan DESPUÉS de las rutas API)
-app.use(express.static(path.join(__dirname, 'public')));//29demayo
+// 3) Rutas estáticas
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../front/public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Para servir archivos subidos
-app.use('/test', express.static(path.join(__dirname, 'web-test'))); //prueba29mayo
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/test', express.static(path.join(__dirname, 'web-test')));
 
 // 4) Ruta de prueba
 app.get('/', (req, res) => {
   res.send('Back-end server is running!');
 });
 
-// 5) Ruta temporal para crear empleado (a reemplazar con control de roles luego)
+// 5) Ruta temporal para crear empleado
 app.post('/employees', async (req, res) => {
   const { nombre, correo } = req.body;
   try {
