@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "destination": "https://proyecto-lsae-production.up.railway.app/api/**"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
