@@ -6,7 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const solicitudesRoutes = require('./routes/solicitudesRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const userRoutes = require('./routes/userRoutes');
-
+const certificadoRoutes = require('./routes/certificadoRoutes');
 const app = express();
 const port = process.env.PORT || 3001;
 const path = require('path');
@@ -24,7 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/Solicitudes', solicitudesRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/users', userRoutes);
-
+app.use('/api/certificados', certificadoRoutes);
 // 3) Rutas estáticas
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '../front/public')));
