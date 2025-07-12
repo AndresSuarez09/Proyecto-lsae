@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { api } from '../utils/api';
-import { jwtDecode } from 'jwt-decode'; 
-
+import { jwtDecode } from 'jwt-decode';
+import Navbar from '../components/Navbar';
 
 export default function Certificates() {
   const [message, setMessage] = useState('');
+  const token = localStorage.getItem('token');
+  const decoded = token ? jwtDecode(token) : null;
+  const userName = decoded?.user?.user_name;
+  const role = decoded?.user?.role;
+  const userId = decoded?.user?.id;
 
   const handleDownload = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!token || !userId) {
       setMessage('Sesión expirada. Inicia sesión de nuevo.');
       return;
     }
-
-    const decoded = jwtDecode(token);
-    const userId = decoded.user.id;
 
     try {
       const res = await api.get(`/certificados/${userId}`, {
@@ -38,6 +39,13 @@ export default function Certificates() {
 
   return (
     <div>
+      <Navbar />
+      {token && (
+        <p style={{ marginBottom: '1rem' }}>
+          ✅ Bienvenido <strong>{userName}</strong>, estás conectado como <em>{role}</em>
+        </p>
+      )}
+
       <h1>Certificados</h1>
       <p>Haz clic para generar tu certificado laboral personalizado:</p>
       <button onClick={handleDownload}>📄 Descargar certificado</button>
