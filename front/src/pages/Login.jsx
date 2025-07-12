@@ -1,38 +1,46 @@
+// src/pages/Login.jsx
 import { useState } from 'react';
-import { api } from '../../utils/api'; // Ruta corregida
+import { useNavigate } from 'react-router-dom';
+import { api } from '../utils/api';
 
 export default function Login() {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
-
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
 
     try {
       const res = await api.post('/auth/login', formData);
 
-      if (res.status === 200) {
-        localStorage.setItem('token', res.data.token);
-        setMessage('Inicio de sesión exitoso');
-        // Si quieres redirigir:
-        // window.location.href = '/empleados';
+      if (typeof res.data === 'string' && res.data.startsWith('<!DOCTYPE')) {
+        console.warn('⚠ El backend respondió con HTML en lugar de JSON');
+        setMessage('Respuesta inesperada del servidor');
+        return;
+      }
+
+      const token = res.data.token;
+      if (res.status === 200 && token) {
+        localStorage.setItem('token', token);
+        setMessage('✅ Inicio de sesión exitoso');
+        navigate('/certificates'); // Redirección tras login
       } else {
         setMessage(res.data.message || 'Error al iniciar sesión');
       }
     } catch (err) {
       console.error(err);
-      setMessage('Error de conexión con el servidor');
+      setMessage('❌ Error de conexión con el servidor');
     }
   };
 
@@ -60,7 +68,7 @@ export default function Login() {
             required
           />
         </div>
-        <button type="submit">Iniciar Sesión</button>
+        <button type="submit">🔐 Iniciar Sesión</button>
       </form>
       {message && <p>{message}</p>}
     </div>
