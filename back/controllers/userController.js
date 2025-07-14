@@ -1,16 +1,24 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
 
-// Crear usuario (Gerente, Administrador o Empleado según permisos)
+function mapRoleTextToNumber(roleText) {
+  const roles = {
+    gerente: 1,
+    jefe: 2,
+    rrhh: 3,
+    empleado: 4
+  };
+  return roles[roleText] || 4;
+}
+
 const createUser = async (req, res) => {
   const { username, password, role, name } = req.body;
   const creatorRole = req.user?.role;
 
-  // Lógica de autorización personalizada
   const permisos = {
-    1: [1, 2, 3], // Gerente puede crear todos
-    2: [2, 3],    // Administrador puede crear admin y empleados
-    3: [3],       // Empleado solo puede crear empleados
+    gerente: ['gerente', 'jefe', 'rrhh'],
+    jefe: ['jefe', 'rrhh'],
+    rrhh: ['rrhh']
   };
 
   if (!permisos[creatorRole]?.includes(role)) {
@@ -20,23 +28,19 @@ const createUser = async (req, res) => {
   }
 
   try {
-    // Verificar si el usuario ya existe
-    const userExists = await pool.query(
-      'SELECT * FROM lae_user WHERE user_email = $1',
-      [username]
-    );
+    const userExists = await pool.query('SELECT * FROM lae_user WHERE user_email = $1', [username]);
     if (userExists.rows.length > 0) {
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
-    // Hashear contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Insertar usuario
+    const roleNumber = mapRoleTextToNumber(role);
+
     const result = await pool.query(
       'INSERT INTO lae_user (user_name, user_email, user_password, id_cargo) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, username, hashedPassword, role]
+      [name, username, hashedPassword, roleNumber]
     );
 
     res.status(201).json({
@@ -49,7 +53,6 @@ const createUser = async (req, res) => {
   }
 };
 
-// Obtener perfil propio
 const getOwnProfile = async (req, res) => {
   const userId = req.user?.id;
 
@@ -72,5 +75,5 @@ const getOwnProfile = async (req, res) => {
 
 module.exports = {
   createUser,
-  getOwnProfile,
+  getOwnProfile
 };

@@ -44,27 +44,27 @@ export default function Register() {
 
   return (
     <div>
-    <h2>Registro de Usuario</h2>
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label>Nombre completo:</label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      <div>
-        <label>Correo electrónico:</label>
-        <input
-          type="email"
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          required
-        />
+      <h2>Registro de Usuario</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Nombre completo:</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div>
+          <label>Correo electrónico:</label>
+          <input
+            type="email"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            required
+          />
         </div>
         <div>
           <label>Contraseña:</label>
@@ -77,14 +77,14 @@ export default function Register() {
           />
         </div>
         <div>
-          <label>ID del Cargo:</label>
-          <input
-            type="number"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            required
-          />
+          <label>Rol:</label>
+          <select name="role" value={formData.role} onChange={handleChange} required>
+            <option value="">Seleccione un rol</option>
+            <option value="gerente">Gerente</option>
+            <option value="jefe">Jefe</option>
+            <option value="rrhh">Recursos Humanos</option>
+            <option value="empleado">Empleado</option>
+          </select>
         </div>
         <button type="submit">Registrar</button>
       </form>
