@@ -12,4 +12,7 @@ router.post('/create', authMiddleware, authorizedRoles, createUser);
 // Ruta para que cualquier usuario vea su propio perfil
 router.get('/me', authMiddleware, getOwnProfile);
 
+// Nueva ruta para editar perfil privado
+router.put('/me/update', authMiddleware, updateOwnProfile);
+
 module.exports = router;

@@ -1,64 +1,58 @@
-import { useState } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import Curriculo from './Curriculo';
+import InformacionPrivada from './InformacionPrivada';
+import Organigrama from './Organigrama';
+import { api } from '../utils/api';
 
 export default function Empleados() {
-  const [archivo, setArchivo] = useState(null);
-  const [archivoSubido, setArchivoSubido] = useState(null);
-  const [mensaje, setMensaje] = useState('');
+  const [activeTab, setActiveTab] = useState('curriculo');
+  const [profile, setProfile] = useState({});
+  const [role, setRole] = useState('');
 
-  const handleArchivoChange = (e) => {
-    setArchivo(e.target.files[0]);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!archivo) {
-      setMensaje('Por favor selecciona un archivo');
-      return;
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const decoded = jwtDecode(token);
+      setRole(decoded.user.role);
+      getProfile(token);
     }
+  }, []);
 
-    const formData = new FormData();
-    formData.append('archivo', archivo);
-
+  const getProfile = async (token) => {
     try {
-      const res = await axios.post('https://proyecto-lsae-production.up.railway.app/api/files/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await api.get('/user/me', {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      setArchivoSubido(res.data);
-      setMensaje('Archivo subido correctamente');
-    } catch (error) {
-      console.error(error);
-      setMensaje('Error al subir el archivo');
+      setProfile(res.data);
+    } catch (err) {
+      console.error('Error al cargar perfil:', err);
     }
   };
 
   return (
-    <div>
-      <h2>Gestión de Empleados - Subir Documentos</h2>
+    <div style={{ padding: '2rem' }}>
+      <h2>👤 Información general del empleado</h2>
+      <p><strong>Nombre:</strong> {profile.user_name}</p>
+      <p><strong>Correo:</strong> {profile.user_email}</p>
+      <p><strong>Cargo:</strong> {role}</p>
+      <p><strong>Teléfono empresa:</strong> {profile.telefono_empresa || 'No asignado'}</p>
+      <p><strong>Departamento:</strong> {profile.departamento || 'Sin departamento'}</p>
+      <p><strong>Jefe:</strong> {profile.jefe_nombre || 'No asignado'}</p>
 
-      <form onSubmit={handleSubmit}>
-        <input type="file" onChange={handleArchivoChange} />
-        <button type="submit">Subir Archivo</button>
-      </form>
+      <hr />
 
-      {mensaje && <p>{mensaje}</p>}
+      <div>
+        <button onClick={() => setActiveTab('curriculo')}>📁 Currículo</button>
+        <button onClick={() => setActiveTab('privada')}>🔒 Información Privada</button>
+        <button onClick={() => setActiveTab('organigrama')}>📊 Organigrama</button>
+      </div>
 
-      {archivoSubido && (
-        <div>
-          <p>Archivo disponible en:</p>
-          <a
-            href={`https://proyecto-lsae-production.up.railway.app/uploads/${archivoSubido.filename}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Descargar archivo
-          </a>
-        </div>
-      )}
+      <div style={{ marginTop: '2rem' }}>
+        {activeTab === 'curriculo' && <Curriculo />}
+        {activeTab === 'privada' && <InformacionPrivada role={role} />}
+        {activeTab === 'organigrama' && <Organigrama />}
+      </div>
     </div>
   );
 }

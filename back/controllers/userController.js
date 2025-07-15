@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../db');
 
+// 🔁 Mapeo texto → número
 function mapRoleTextToNumber(roleText) {
   const roles = {
     gerente: 1,
@@ -11,6 +12,9 @@ function mapRoleTextToNumber(roleText) {
   return roles[roleText] || 4;
 }
 
+// -----------------------------
+// Crear usuario con jerarquía
+// -----------------------------
 const createUser = async (req, res) => {
   const { username, password, role, name } = req.body;
   const creatorRole = req.user?.role;
@@ -28,14 +32,16 @@ const createUser = async (req, res) => {
   }
 
   try {
-    const userExists = await pool.query('SELECT * FROM lae_user WHERE user_email = $1', [username]);
+    const userExists = await pool.query(
+      'SELECT * FROM lae_user WHERE user_email = $1',
+      [username]
+    );
     if (userExists.rows.length > 0) {
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
     const roleNumber = mapRoleTextToNumber(role);
 
     const result = await pool.query(
@@ -53,12 +59,15 @@ const createUser = async (req, res) => {
   }
 };
 
+// -----------------------------
+// Obtener perfil propio
+// -----------------------------
 const getOwnProfile = async (req, res) => {
   const userId = req.user?.id;
 
   try {
     const result = await pool.query(
-      'SELECT user_name, user_email, id_cargo FROM lae_user WHERE id_user = $1',
+      'SELECT * FROM lae_user WHERE id_user = $1',
       [userId]
     );
 
@@ -73,7 +82,81 @@ const getOwnProfile = async (req, res) => {
   }
 };
 
+// -----------------------------
+// Actualizar perfil privado
+// -----------------------------
+const updateOwnProfile = async (req, res) => {
+  const userId = req.user?.id;
+  const {
+    telefono_privado,
+    correo_privado,
+    cuenta_bancaria,
+    contacto_emergencia,
+    telefono_emergencia,
+    nivel_estudio,
+    anio_finalizacion,
+    escuela,
+    estado_civil,
+    hijos_dependientes,
+    nacionalidad,
+    identificacion,
+    pasaporte,
+    genero,
+    nacimiento_fecha,
+    nacimiento_lugar
+  } = req.body;
+
+  try {
+    await pool.query(
+      `UPDATE lae_user SET
+        telefono_privado = $1,
+        correo_privado = $2,
+        cuenta_bancaria = $3,
+        contacto_emergencia = $4,
+        telefono_emergencia = $5,
+        nivel_estudio = $6,
+        anio_finalizacion = $7,
+        escuela = $8,
+        estado_civil = $9,
+        hijos_dependientes = $10,
+        nacionalidad = $11,
+        identificacion = $12,
+        pasaporte = $13,
+        genero = $14,
+        nacimiento_fecha = $15,
+        nacimiento_lugar = $16
+      WHERE id_user = $17`,
+      [
+        telefono_privado,
+        correo_privado,
+        cuenta_bancaria,
+        contacto_emergencia,
+        telefono_emergencia,
+        nivel_estudio,
+        anio_finalizacion,
+        escuela,
+        estado_civil,
+        hijos_dependientes,
+        nacionalidad,
+        identificacion,
+        pasaporte,
+        genero,
+        nacimiento_fecha,
+        nacimiento_lugar,
+        userId
+      ]
+    );
+
+    res.json({ message: '✅ Perfil actualizado correctamente' });
+  } catch (err) {
+    console.error('Error al actualizar perfil:', err);
+    res.status(500).json({ message: 'Error en el servidor al actualizar perfil' });
+  }
+};
+
+// -----------------------------
 module.exports = {
   createUser,
-  getOwnProfile
+  getOwnProfile,
+  updateOwnProfile
 };
