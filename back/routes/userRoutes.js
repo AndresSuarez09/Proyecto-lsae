@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { createUser, getOwnProfile } = require('../controllers/userController');
+//const { createUser, getOwnProfile } = require('../controllers/userController');
+const { createUser, getOwnProfile, updateOwnProfile } = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizedRoles = require('../middleware/authorizedRoles'); // este ya usa la lógica de jerarquía
 
