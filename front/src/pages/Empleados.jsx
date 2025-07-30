@@ -21,7 +21,7 @@ export default function Empleados() {
 
   const getProfile = async (token) => {
     try {
-      const res = await api.get('/user/me', {
+      const res = await api.get('/users/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProfile(res.data);
