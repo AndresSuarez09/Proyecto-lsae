@@ -78,7 +78,8 @@ const getOwnProfile = async (req, res) => {
 
 const updateOwnProfile = async (req, res) => {
   const userId = req.user.id;
-  const fields = req.body;
+  const fields = { ...req.body };
+  delete fields.id_user;  // 👈 Se elimina el campo protegido para evitar error SQL
 
   const keys = Object.keys(fields);
   const values = Object.values(fields);
