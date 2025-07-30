@@ -1,5 +1,7 @@
+const pool = require('../db/pool'); // Asegúrate que esté definido y conectado correctamente
+
+// 🧩 Crear usuario
 const createUser = async (req, res) => {
-  // 📋 Log de entrada para depuración
   console.log("🆕 Datos recibidos para nuevo usuario:", req.body);
 
   const {
@@ -73,4 +75,53 @@ const createUser = async (req, res) => {
     console.error("❌ Error al crear usuario:", err.message);
     res.status(500).json({ message: 'Error interno al registrar usuario' });
   }
+};
+
+// 🧩 Obtener perfil propio
+const getOwnProfile = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const result = await pool.query(
+      `SELECT * FROM lae_user WHERE id_user = $1`,
+      [userId]
+    );
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Error al obtener perfil:", err.message);
+    res.status(500).json({ message: 'No se pudo obtener el perfil' });
+  }
+};
+
+// 🧩 Actualizar perfil privado
+const updateOwnProfile = async (req, res) => {
+  const userId = req.user.id;
+  const fields = req.body;
+
+  const keys = Object.keys(fields);
+  const values = Object.values(fields);
+
+  if (keys.length === 0) {
+    return res.status(400).json({ message: 'No se recibieron datos para actualizar' });
+  }
+
+  const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(', ');
+
+  try {
+    await pool.query(
+      `UPDATE lae_user SET ${setClause} WHERE id_user = $${keys.length + 1}`,
+      [...values, userId]
+    );
+    console.log("✅ Perfil actualizado para ID:", userId);
+    res.status(200).json({ message: 'Perfil actualizado exitosamente' });
+  } catch (err) {
+    console.error("❌ Error al actualizar perfil:", err.message);
+    res.status(500).json({ message: 'No se pudo actualizar el perfil' });
+  }
+};
+
+// 🔄 Exportación obligatoria para evitar el error del router
+module.exports = {
+  createUser,
+  getOwnProfile,
+  updateOwnProfile
 };
