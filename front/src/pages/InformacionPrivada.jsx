@@ -8,7 +8,7 @@ export default function InformacionPrivada({ role }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    api.get('/user/me', {
+    api.get('/users/me', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setDatos(res.data));
   }, []);
@@ -21,7 +21,7 @@ export default function InformacionPrivada({ role }) {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      await api.put('/user/me/update', datos, {
+      await api.put('/users/me/update', datos, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMensaje('✅ Datos actualizados correctamente');
