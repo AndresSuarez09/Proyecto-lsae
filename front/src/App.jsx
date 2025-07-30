@@ -18,7 +18,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/certificates" element={<Certificates />} />
-          <Route path="/Solicitudes" element={<Solicitudes />} />
+          <Route path="/solicitudes" element={<Solicitudes />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

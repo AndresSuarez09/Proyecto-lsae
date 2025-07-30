@@ -34,7 +34,7 @@ export default function Login() {
       if (res.status === 200 && token) {
         localStorage.setItem('token', token);
         setMessage('✅ Inicio de sesión exitoso');
-        navigate('/certificates'); // Redirección tras login
+        navigate('/empleados'); // Redirección tras login
       } else {
         setMessage(res.data.message || 'Error al iniciar sesión');
       }
