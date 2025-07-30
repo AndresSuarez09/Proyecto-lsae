@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
-//const { createUser, getOwnProfile } = require('../controllers/userController');
-const { createUser, getOwnProfile, updateOwnProfile } = require('../controllers/userController');
+
+const {
+  createUser,
+  getOwnProfile,
+  updateOwnProfile,
+  deleteOwnProfile
+} = require('../controllers/userController');
+
 const authMiddleware = require('../middleware/authMiddleware');
-const authorizedRoles = require('../middleware/authorizedRoles'); // este ya usa la lógica de jerarquía
+const authorizedRoles = require('../middleware/authorizedRoles');
 
-console.log('Cargando rutas de usuario...');
+console.log('📦 Cargando rutas de usuario...');
 
-// Ruta protegida para crear usuarios con verificación jerárquica
 router.post('/create', authMiddleware, authorizedRoles, createUser);
-
-// Ruta para que cualquier usuario vea su propio perfil
 router.get('/me', authMiddleware, getOwnProfile);
-
-// Nueva ruta para editar perfil privado
 router.put('/me/update', authMiddleware, updateOwnProfile);
+router.delete('/me/delete', authMiddleware, deleteOwnProfile);
 
 module.exports = router;

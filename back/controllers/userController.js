@@ -1,51 +1,35 @@
-const pool = require('../db/pool'); // Asegúrate que esté definido y conectado correctamente
+const pool = require('../db/pool');
 
-// 🧩 Crear usuario
 const createUser = async (req, res) => {
-  console.log("🆕 Datos recibidos para nuevo usuario:", req.body);
-
-  const {
-    telefono_privado,
-    correo_privado,
-    cuenta_bancaria,
-    contacto_emergencia,
-    telefono_emergencia,
-    nivel_estudio,
-    anio_finalizacion,
-    escuela,
-    estado_civil,
-    hijos_dependientes,
-    nacionalidad,
-    identificacion,
-    pasaporte,
-    genero,
-    nacimiento_fecha,
-    nacimiento_lugar
-  } = req.body;
-
   try {
+    const {
+      telefono_privado,
+      correo_privado,
+      cuenta_bancaria,
+      contacto_emergencia,
+      telefono_emergencia,
+      nivel_estudio,
+      anio_finalizacion,
+      escuela,
+      estado_civil,
+      hijos_dependientes,
+      nacionalidad,
+      identificacion,
+      pasaporte,
+      genero,
+      nacimiento_fecha,
+      nacimiento_lugar
+    } = req.body;
+
     const result = await pool.query(
       `INSERT INTO lae_user (
-        telefono_privado,
-        correo_privado,
-        cuenta_bancaria,
-        contacto_emergencia,
-        telefono_emergencia,
-        nivel_estudio,
-        anio_finalizacion,
-        escuela,
-        estado_civil,
-        hijos_dependientes,
-        nacionalidad,
-        identificacion,
-        pasaporte,
-        genero,
-        nacimiento_fecha,
-        nacimiento_lugar
+        telefono_privado, correo_privado, cuenta_bancaria, contacto_emergencia,
+        telefono_emergencia, nivel_estudio, anio_finalizacion, escuela,
+        estado_civil, hijos_dependientes, nacionalidad, identificacion,
+        pasaporte, genero, nacimiento_fecha, nacimiento_lugar
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9, $10, $11, $12, $13, $14, $15, $16
       ) RETURNING id_user`,
       [
         telefono_privado || null,
@@ -67,17 +51,17 @@ const createUser = async (req, res) => {
       ]
     );
 
-    const newUserId = result.rows[0].id_user;
-    console.log("✅ Usuario creado con ID:", newUserId);
-    res.status(201).json({ message: 'Usuario creado exitosamente', id: newUserId });
+    res.status(201).json({
+      message: '✅ Usuario creado correctamente',
+      id: result.rows[0].id_user
+    });
 
   } catch (err) {
-    console.error("❌ Error al crear usuario:", err.message);
-    res.status(500).json({ message: 'Error interno al registrar usuario' });
+    console.error('❌ Error al crear usuario:', err.message);
+    res.status(500).json({ message: 'Error al registrar usuario' });
   }
 };
 
-// 🧩 Obtener perfil propio
 const getOwnProfile = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -87,12 +71,11 @@ const getOwnProfile = async (req, res) => {
     );
     res.status(200).json(result.rows[0]);
   } catch (err) {
-    console.error("❌ Error al obtener perfil:", err.message);
+    console.error('❌ Error al obtener perfil:', err.message);
     res.status(500).json({ message: 'No se pudo obtener el perfil' });
   }
 };
 
-// 🧩 Actualizar perfil privado
 const updateOwnProfile = async (req, res) => {
   const userId = req.user.id;
   const fields = req.body;
@@ -111,17 +94,27 @@ const updateOwnProfile = async (req, res) => {
       `UPDATE lae_user SET ${setClause} WHERE id_user = $${keys.length + 1}`,
       [...values, userId]
     );
-    console.log("✅ Perfil actualizado para ID:", userId);
-    res.status(200).json({ message: 'Perfil actualizado exitosamente' });
+    res.status(200).json({ message: '✅ Perfil actualizado exitosamente' });
   } catch (err) {
-    console.error("❌ Error al actualizar perfil:", err.message);
+    console.error('❌ Error al actualizar perfil:', err.message);
     res.status(500).json({ message: 'No se pudo actualizar el perfil' });
   }
 };
 
-// 🔄 Exportación obligatoria para evitar el error del router
+const deleteOwnProfile = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    await pool.query(`DELETE FROM lae_user WHERE id_user = $1`, [userId]);
+    res.status(200).json({ message: '🗑️ Usuario eliminado correctamente' });
+  } catch (err) {
+    console.error('❌ Error al eliminar usuario:', err.message);
+    res.status(500).json({ message: 'No se pudo eliminar el usuario' });
+  }
+};
+
 module.exports = {
   createUser,
   getOwnProfile,
-  updateOwnProfile
+  updateOwnProfile,
+  deleteOwnProfile
 };
