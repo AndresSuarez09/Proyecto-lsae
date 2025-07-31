@@ -8,6 +8,7 @@ import Certificates from './pages/Certificates';
 import NotFound from './pages/NotFound';
 import Solicitudes from './pages/Solicitudes';
 import EditarEmpleado from './pages/EditarEmpleado';
+import ProtectedRoute from './utils/ProtectedRoute'; // ✅ Importamos el protector
 
 function App() {
   return (
@@ -15,12 +16,23 @@ function App() {
       <Navbar />
       <main style={{ padding: '2rem' }}>
         <Routes>
-          <Route path="/" element={<Login />} /> {/* ✅ Redirige a Login por defecto */}
-          <Route path="/empleados" element={<Empleados />} /> {/* ✅ Ruta corregida */}
-          <Route path="/empleados/:id/editar" element={<EditarEmpleado />} />
+          <Route path="/" element={<Login />} /> {/* ✅ Página pública */}
           <Route path="/register" element={<Register />} />
-          <Route path="/certificates" element={<Certificates />} />
-          <Route path="/solicitudes" element={<Solicitudes />} />
+
+          {/* 🔐 Rutas protegidas por login */}
+          <Route path="/certificates" element={
+            <ProtectedRoute><Certificates /></ProtectedRoute>
+          } />
+          <Route path="/empleados" element={
+            <ProtectedRoute><Empleados /></ProtectedRoute>
+          } />
+          <Route path="/empleados/:id/editar" element={
+            <ProtectedRoute><EditarEmpleado /></ProtectedRoute>
+          } />
+          <Route path="/solicitudes" element={
+            <ProtectedRoute><Solicitudes /></ProtectedRoute>
+          } />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
