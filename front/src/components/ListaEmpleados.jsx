@@ -38,8 +38,8 @@ export default function ListaEmpleados({ roleActual }) {
     <div>
       <h3>📋 Empleados registrados</h3>
 
-      {/* Botón no funcional */}
-      <div style={{ marginBottom: '1rem' }}>
+      {/* Botones no funcionales para presentación */}
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem' }}>
         <button disabled style={{
           padding: '8px 16px',
           backgroundColor: '#ccc',
@@ -48,6 +48,16 @@ export default function ListaEmpleados({ roleActual }) {
           cursor: 'not-allowed'
         }}>
           🔍 Buscar empleado
+        </button>
+
+        <button disabled style={{
+          padding: '8px 16px',
+          backgroundColor: '#ccc',
+          color: '#333',
+          border: '1px solid #aaa',
+          cursor: 'not-allowed'
+        }}>
+          ✏️ Editar empleado
         </button>
       </div>
 
