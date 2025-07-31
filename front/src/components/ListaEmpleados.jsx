@@ -37,6 +37,20 @@ export default function ListaEmpleados({ roleActual }) {
   return (
     <div>
       <h3>📋 Empleados registrados</h3>
+
+      {/* Botón no funcional */}
+      <div style={{ marginBottom: '1rem' }}>
+        <button disabled style={{
+          padding: '8px 16px',
+          backgroundColor: '#ccc',
+          color: '#333',
+          border: '1px solid #aaa',
+          cursor: 'not-allowed'
+        }}>
+          🔍 Buscar empleado
+        </button>
+      </div>
+
       <table border="1" cellPadding="8" style={{ marginTop: '1rem', width: '100%' }}>
         <thead>
           <tr>

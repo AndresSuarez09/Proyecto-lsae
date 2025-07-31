@@ -1,3 +1,4 @@
+// src/components/EditarEmpleado.jsx
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
@@ -58,7 +59,18 @@ function EditarEmpleado() {
           <input name="departamento" value={datos.departamento || ''} onChange={handleChange} />
         </label>
         <br />
-        <button type="submit">💾 Guardar cambios</button>
+        <div style={{ marginTop: '1rem' }}>
+          <button type="submit">💾 Guardar cambios</button>
+          <button disabled style={{
+            marginLeft: '0.5rem',
+            backgroundColor: '#ccc',
+            color: '#333',
+            border: '1px solid #aaa',
+            cursor: 'not-allowed'
+          }}>
+            ✏️ Editar tu información
+          </button>
+        </div>
       </form>
     </div>
   );
