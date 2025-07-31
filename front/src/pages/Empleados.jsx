@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 import Curriculo from './Curriculo';
 import InformacionPrivada from './InformacionPrivada';
 import Organigrama from './Organigrama';
+import ListaEmpleados from './components/ListaEmpleados';
 import { api } from '../utils/api';
 
 export default function Empleados() {
@@ -46,12 +47,14 @@ export default function Empleados() {
         <button onClick={() => setActiveTab('curriculo')}>📁 Currículo</button>
         <button onClick={() => setActiveTab('privada')}>🔒 Información Privada</button>
         <button onClick={() => setActiveTab('organigrama')}>📊 Organigrama</button>
+        <button onClick={() => setActiveTab('lista')}>📋 Lista de Empleados</button>
       </div>
 
       <div style={{ marginTop: '2rem' }}>
         {activeTab === 'curriculo' && <Curriculo />}
         {activeTab === 'privada' && <InformacionPrivada role={role} />}
         {activeTab === 'organigrama' && <Organigrama />}
+        {activeTab === 'lista' && <ListaEmpleados roleActual={role} />}
       </div>
     </div>
   );
