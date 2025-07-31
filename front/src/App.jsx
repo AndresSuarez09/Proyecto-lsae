@@ -7,16 +7,18 @@ import Register from './pages/Register';
 import Certificates from './pages/Certificates';
 import NotFound from './pages/NotFound';
 import Solicitudes from './pages/Solicitudes';
+import EditarEmpleado from './pages/EditarEmpleado';
 
 function App() {
   return (
     <>
       <Navbar />
-      <main style={{ padding: '2rem' }}>  {/* Added container for content */}
+      <main style={{ padding: '2rem' }}>
         <Routes>
-          <Route path="/" element={<Empleados />} />
+          <Route path="/" element={<Login />} /> {/* ✅ Redirige a Login por defecto */}
+          <Route path="/empleados" element={<Empleados />} /> {/* ✅ Ruta corregida */}
+          <Route path="/empleados/:id/editar" element={<EditarEmpleado />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
           <Route path="/certificates" element={<Certificates />} />
           <Route path="/solicitudes" element={<Solicitudes />} />
           <Route path="*" element={<NotFound />} />

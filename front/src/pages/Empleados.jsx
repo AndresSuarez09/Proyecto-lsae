@@ -3,7 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 import Curriculo from './Curriculo';
 import InformacionPrivada from './InformacionPrivada';
 import Organigrama from './Organigrama';
-import ListaEmpleados from './components/ListaEmpleados';
+import ListaEmpleados from '../components/ListaEmpleados';
 import { api } from '../utils/api';
 
 export default function Empleados() {
