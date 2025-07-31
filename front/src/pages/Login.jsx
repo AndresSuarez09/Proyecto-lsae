@@ -2,7 +2,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
-import { AuthContext } from '../context/AuthContext'; // ✅ importa contexto
+import { AuthContext } from '../context/AuthContext';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -11,11 +11,18 @@ export default function Login() {
   });
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { setUserFromToken } = useContext(AuthContext); // ✅ actualizar contexto
+  const { setUserFromToken } = useContext(AuthContext);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) navigate('/empleados'); // ✅ evitar login si ya hay sesión
+    if (token) {
+      try {
+        setUserFromToken(); // 🔄 reactiva el contexto por si quedó desincronizado
+        navigate('/empleados');
+      } catch (err) {
+        console.warn('Token presente pero inválido. Sesión no restaurada.');
+      }
+    }
   }, []);
 
   const handleChange = e => {
@@ -29,7 +36,13 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const res = await api.post('/auth/login', formData);
+      const res = await api.post('/auth/login', formData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const { token, message: backendMessage } = res.data;
 
       if (typeof res.data === 'string' && res.data.startsWith('<!DOCTYPE')) {
         console.warn('⚠ El backend respondió con HTML en lugar de JSON');
@@ -37,17 +50,16 @@ export default function Login() {
         return;
       }
 
-      const token = res.data.token;
       if (res.status === 200 && token) {
         localStorage.setItem('token', token);
-        setUserFromToken(); // ✅ activa contexto reactivo
+        setUserFromToken();
         setMessage('✅ Inicio de sesión exitoso');
-        navigate('/empleados'); // ✅ flujo coherente
+        navigate('/empleados');
       } else {
-        setMessage(res.data.message || 'Error al iniciar sesión');
+        setMessage(backendMessage || 'Error al iniciar sesión');
       }
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error inesperado al conectar', err);
       setMessage('❌ Error de conexión con el servidor');
     }
   };
