@@ -1,7 +1,8 @@
 // src/pages/Login.jsx
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import { AuthContext } from '../context/AuthContext'; // ✅ importa contexto
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -10,6 +11,12 @@ export default function Login() {
   });
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const { setUserFromToken } = useContext(AuthContext); // ✅ actualizar contexto
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) navigate('/empleados'); // ✅ evitar login si ya hay sesión
+  }, []);
 
   const handleChange = e => {
     setFormData({
@@ -33,8 +40,9 @@ export default function Login() {
       const token = res.data.token;
       if (res.status === 200 && token) {
         localStorage.setItem('token', token);
+        setUserFromToken(); // ✅ activa contexto reactivo
         setMessage('✅ Inicio de sesión exitoso');
-        navigate('/certificates'); // Redirección tras login
+        navigate('/empleados'); // ✅ flujo coherente
       } else {
         setMessage(res.data.message || 'Error al iniciar sesión');
       }

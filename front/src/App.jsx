@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/utils/App.jsx
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Empleados from './pages/Empleados';
@@ -8,7 +8,7 @@ import Certificates from './pages/Certificates';
 import NotFound from './pages/NotFound';
 import Solicitudes from './pages/Solicitudes';
 import EditarEmpleado from './pages/EditarEmpleado';
-import ProtectedRoute from './utils/ProtectedRoute'; // ✅ Importamos el protector
+import ProtectedRoute from './utils/ProtectedRoute';
 
 function App() {
   return (
@@ -16,10 +16,11 @@ function App() {
       <Navbar />
       <main style={{ padding: '2rem' }}>
         <Routes>
-          <Route path="/" element={<Login />} /> {/* ✅ Página pública */}
+          <Route path="/" element={<Login />} /> {/* Página pública */}
+          <Route path="/login" element={<Login />} /> {/* ✅ soporte adicional */}
           <Route path="/register" element={<Register />} />
 
-          {/* 🔐 Rutas protegidas por login */}
+          {/* Rutas protegidas */}
           <Route path="/certificates" element={
             <ProtectedRoute><Certificates /></ProtectedRoute>
           } />

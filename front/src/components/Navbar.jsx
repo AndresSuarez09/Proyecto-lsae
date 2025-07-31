@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
@@ -15,7 +16,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/login');
+    navigate('/'); // 🔄 redirige a login sin 404
   };
 
   return (
@@ -28,8 +29,8 @@ export default function Navbar() {
       fontFamily: 'sans-serif'
     }}>
       <div>
-        <Link to="/" style={{ marginRight: '1rem' }}>Empleados</Link>
-        <Link to="/login" style={{ marginRight: '1rem' }}>Login</Link>
+        <Link to="/empleados" style={{ marginRight: '1rem' }}>Empleados</Link>
+        <Link to="/" style={{ marginRight: '1rem' }}>Login</Link> {/* ✅ corregido */}
         <Link to="/certificates" style={{ marginRight: '1rem' }}>Certificates</Link>
         <Link to="/register" style={{ marginRight: '1rem' }}>Register</Link>
         <Link to="/solicitudes" style={{ marginRight: '1rem' }}>Solicitudes</Link>
