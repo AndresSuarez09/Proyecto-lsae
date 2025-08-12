@@ -58,4 +58,5 @@ export default function Empleados() {
       </div>
     </div>
   );
-}
+} 
+
