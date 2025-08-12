@@ -1,43 +1,40 @@
 // src/utils/App.jsx
 import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Empleados from './pages/Empleados';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Certificates from './pages/Certificates';
-import NotFound from './pages/NotFound';
-import Solicitudes from './pages/Solicitudes';
-import EditarEmpleado from './pages/EditarEmpleado';
-import ProtectedRoute from './utils/ProtectedRoute';
+import Empleados from '../pages/Empleados';
+import Login from '../pages/Login';
+import Register from '../pages/Register';
+import Certificates from '../pages/Certificates';
+import NotFound from '../pages/NotFound';
+import Solicitudes from '../pages/Solicitudes';
+import EditarEmpleado from '../pages/EditarEmpleado';
+import ProtectedRoute from './ProtectedRoute';
+import Layout from '../components/Layout'; // ✅ nuevo import
 
 function App() {
   return (
-    <>
-      <Navbar />
-      <main style={{ padding: '2rem' }}>
-        <Routes>
-          <Route path="/" element={<Login />} /> {/* Página pública */}
-          <Route path="/login" element={<Login />} /> {/* ✅ soporte adicional */}
-          <Route path="/register" element={<Register />} />
+    <Routes>
+      {/* Páginas públicas */}
+      <Route path="/" element={<Login />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-          {/* Rutas protegidas */}
-          <Route path="/certificates" element={
-            <ProtectedRoute><Certificates /></ProtectedRoute>
-          } />
-          <Route path="/empleados" element={
-            <ProtectedRoute><Empleados /></ProtectedRoute>
-          } />
-          <Route path="/empleados/:id/editar" element={
-            <ProtectedRoute><EditarEmpleado /></ProtectedRoute>
-          } />
-          <Route path="/solicitudes" element={
-            <ProtectedRoute><Solicitudes /></ProtectedRoute>
-          } />
+      {/* Páginas protegidas con Navbar activo */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/certificates" element={<Certificates />} />
+        <Route path="/empleados" element={<Empleados />} />
+        <Route path="/empleados/:id/editar" element={<EditarEmpleado />} />
+        <Route path="/solicitudes" element={<Solicitudes />} />
+      </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-    </>
+      {/* Página de error */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
