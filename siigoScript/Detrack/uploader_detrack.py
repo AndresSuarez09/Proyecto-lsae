@@ -71,3 +71,6 @@ def enviar_orden(payload):
         print(f"\n🚫 Excepción al enviar la orden: {str(e)}")
         registrar_trazabilidad(payload, None)
         return None
+# Alias para compatibilidad con el formulario manual
+def upload_job(payload):
+    return enviar_orden(payload)

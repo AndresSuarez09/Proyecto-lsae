@@ -7,7 +7,11 @@ from auth_siigo import obtener_token_siigo
 from query_facturas import consultar_facturas_siigo
 from main import resolver_clientes, generar_excel
 from siigoScript.Detrack.main_detrack import main as flujo_detrack
+from siigoScript.Detrack import payload_builder_form, uploader_detrack
+from siigoScript.Detrack import consultas_detrack
+from siigoScript.Detrack import consulta_puntual_detrack
 import requests
+import webbrowser
 
 # Paleta corporativa Lubrisol
 COLOR_VERDE = "#006633"
@@ -18,7 +22,7 @@ COLOR_GRIS_OSCURO = "#333333"
 token = obtener_token_siigo()
 
 # ----------------------------
-# Funciones de acciones
+# Funciones de acciones Siigo
 # ----------------------------
 def mostrar_facturas_en_log(facturas, fecha_texto=""):
     if not facturas:
@@ -71,6 +75,9 @@ def consultar_factura():
             generar_excel(data, clientes)
             return
     log_text.insert(tk.END, f"🚫 No se encontró la factura {fv}\n", "error")
+# ----------------------------
+# Funciones de acciones Detrack
+# ----------------------------
 
 def generar_excel_y_detrack():
     hoy_local = datetime.now()
@@ -94,6 +101,213 @@ def generar_excel_sin_detrack():
 def subir_detrack():
     flujo_detrack()
     log_text.insert(tk.END, "✅ Órdenes enviadas desde último Excel\n", "success")
+# ----------------------------
+# Formulario para crear Job en Detrack
+# ----------------------------
+def abrir_formulario_job():
+    form = tk.Toplevel()
+    form.title("Crear nuevo Job en Detrack")
+
+    # POD DETAILS
+    tk.Label(form, text="POD Details", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, columnspan=2, pady=(10,5))
+    tk.Label(form, text="Tracking Status:").grid(row=1, column=0, sticky="w")
+    tk.Button(form, text="Out for Delivery").grid(row=1, column=1, sticky="w")
+
+    tk.Label(form, text="Job Status:").grid(row=2, column=0, sticky="w")
+    combo_job_status = ttk.Combobox(form, values=["Info received", "In progress", "On Hold", "Return"])
+    combo_job_status.grid(row=2, column=1)
+
+    # JOB DETAILS
+    tk.Label(form, text="Job Details", font=("Segoe UI", 12, "bold")).grid(row=3, column=0, columnspan=2, pady=(10,5))
+    tk.Label(form, text="Detrack No.:").grid(row=4, column=0, sticky="w")
+    entry_detrack_no = tk.Entry(form)
+    entry_detrack_no.grid(row=4, column=1)
+
+    tk.Label(form, text="Detrack Job Type:").grid(row=5, column=0, sticky="w")
+    tk.Label(form, text="Delivery").grid(row=5, column=1, sticky="w")
+
+    tk.Label(form, text="Assign to:").grid(row=6, column=0, sticky="w")
+    combo_assign = ttk.Combobox(form, values=["ANDRES", "JOHN G", "Principal"])
+    combo_assign.grid(row=6, column=1)
+
+    tk.Label(form, text="D.O. No.:").grid(row=7, column=0, sticky="w")
+    entry_do_no = tk.Entry(form)
+    entry_do_no.grid(row=7, column=1)
+
+    tk.Label(form, text="Date:").grid(row=8, column=0, sticky="w")
+    entry_date = tk.Entry(form)
+    entry_date.grid(row=8, column=1)
+
+    tk.Label(form, text="Address:").grid(row=9, column=0, sticky="w")
+    entry_address = tk.Entry(form)
+    entry_address.grid(row=9, column=1)
+    tk.Label(form, text="Company name:").grid(row=10, column=0, sticky="w")
+    entry_company = tk.Entry(form)
+    entry_company.grid(row=10, column=1)
+
+    tk.Label(form, text="Deliver to:").grid(row=11, column=0, sticky="w")
+    entry_deliver_to = tk.Entry(form)
+    entry_deliver_to.grid(row=11, column=1)
+
+    tk.Label(form, text="Phone No.:").grid(row=12, column=0, sticky="w")
+    entry_phone = tk.Entry(form)
+    entry_phone.grid(row=12, column=1)
+
+    tk.Label(form, text="Invoice No.:").grid(row=13, column=0, sticky="w")
+    entry_invoice_no = tk.Entry(form)
+    entry_invoice_no.grid(row=13, column=1)
+
+    tk.Label(form, text="Invoice amount:").grid(row=14, column=0, sticky="w")
+    entry_invoice_amount = tk.Entry(form)
+    entry_invoice_amount.grid(row=14, column=1)
+
+    tk.Label(form, text="Payment mode:").grid(row=15, column=0, sticky="w")
+    combo_payment = ttk.Combobox(form, values=["Credit card", "Cash", "COD"])
+    combo_payment.grid(row=15, column=1)
+
+    tk.Label(form, text="Payment amount:").grid(row=16, column=0, sticky="w")
+    entry_payment_amount = tk.Entry(form)
+    entry_payment_amount.grid(row=16, column=1)
+
+    tk.Label(form, text="Order No.:").grid(row=17, column=0, sticky="w")
+    entry_order_no = tk.Entry(form)
+    entry_order_no.grid(row=17, column=1)
+
+    tk.Label(form, text="Instructions:").grid(row=18, column=0, sticky="w")
+    entry_instructions = tk.Entry(form)
+    entry_instructions.grid(row=18, column=1)
+
+    tk.Label(form, text="Pieces:").grid(row=19, column=0, sticky="w")
+    entry_pieces = tk.Entry(form)
+    entry_pieces.grid(row=19, column=1)
+
+    tk.Label(form, text="Job owner:").grid(row=20, column=0, sticky="w")
+    entry_job_owner = tk.Entry(form)
+    entry_job_owner.grid(row=20, column=1)
+
+    tk.Label(form, text="Carrier:").grid(row=21, column=0, sticky="w")
+    entry_carrier = tk.Entry(form)
+    entry_carrier.grid(row=21, column=1)
+
+    tk.Label(form, text="Identification No.:").grid(row=22, column=0, sticky="w")
+    entry_id_no = tk.Entry(form)
+    entry_id_no.grid(row=22, column=1)
+    # ITEM DETAILS
+    tk.Label(form, text="Item Details", font=("Segoe UI", 12, "bold")).grid(row=23, column=0, columnspan=2, pady=(10,5))
+    tk.Label(form, text="SKU:").grid(row=24, column=0, sticky="w")
+    entry_sku = tk.Entry(form)
+    entry_sku.grid(row=24, column=1)
+
+    tk.Label(form, text="Item Description:").grid(row=25, column=0, sticky="w")
+    entry_item_desc = tk.Entry(form)
+    entry_item_desc.grid(row=25, column=1)
+
+    tk.Label(form, text="Quantity:").grid(row=26, column=0, sticky="w")
+    entry_quantity = tk.Entry(form)
+    entry_quantity.grid(row=26, column=1)
+
+    tk.Label(form, text="Comments:").grid(row=27, column=0, sticky="w")
+    entry_comments = tk.Entry(form)
+    entry_comments.grid(row=27, column=1)
+
+    tk.Label(form, text="Reject quantity:").grid(row=28, column=0, sticky="w")
+    entry_reject_qty = tk.Entry(form)
+    entry_reject_qty.grid(row=28, column=1)
+
+    tk.Label(form, text="Item reject Reason:").grid(row=29, column=0, sticky="w")
+    combo_reject_reason = ttk.Combobox(form, values=[
+        "Pedido incorrecto", "Cantidad incorrecta", "Producto defectuoso",
+        "Envase dañado", "Mal rotulado", "Producto no requerido"
+    ])
+    combo_reject_reason.grid(row=29, column=1)
+
+    # Función para crear Job
+    def crear_job():
+        datos = {
+            "job_status": combo_job_status.get(),
+            "assign_to": combo_assign.get(),
+            "do_number": entry_do_no.get(),
+            "date": entry_date.get(),
+            "address": entry_address.get(),
+            "company_name": entry_company.get(),
+            "deliver_to": entry_deliver_to.get(),
+            "phone_number": entry_phone.get(),
+            "invoice_number": entry_invoice_no.get(),
+            "invoice_amount": entry_invoice_amount.get(),
+            "payment_mode": combo_payment.get(),
+            "payment_amount": entry_payment_amount.get(),
+            "order_number": entry_order_no.get(),
+            "instructions": entry_instructions.get(),
+            "pieces": entry_pieces.get(),
+            "job_owner": entry_job_owner.get(),
+            "carrier": entry_carrier.get(),
+            "identification_number": entry_id_no.get(),
+            "sku": entry_sku.get(),
+            "item_description": entry_item_desc.get(),
+            "quantity": entry_quantity.get(),
+            "comments": entry_comments.get(),
+            "reject_quantity": entry_reject_qty.get(),
+            "reject_reason": combo_reject_reason.get()
+        }
+
+        payload = payload_builder_form.build_payload(datos)
+        try:
+            resultado = uploader_detrack.upload_job(payload)
+            if resultado:
+                messagebox.showinfo("Éxito", "Job creado en Detrack")
+            else:
+                messagebox.showerror("Error", "No se pudo crear el Job en Detrack")
+        except Exception as e:
+            messagebox.showerror("Error", f"Excepción: {e}")
+
+    # Botón final
+    tk.Button(form, text="Crear Job", command=crear_job).grid(row=30, column=0, columnspan=2, pady=10)
+# -------------------------------
+# Consultar por fecha Detrack
+# -------------------------------
+def consultar_por_fecha_detrack():
+    fecha = fecha_entry_detrack.get().strip()
+    try:
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        messagebox.showerror("Error", "Formato inválido. Use YYYY-MM-DD.")
+        return
+
+    ordenes = consultas_detrack.consultar_por_fecha(fecha)
+    if ordenes is None:
+        messagebox.showerror("Error", "No se pudieron consultar órdenes en Detrack")
+        return
+
+    log_text.insert(tk.END, f"📦 Órdenes encontradas en Detrack {fecha}: {len(ordenes)}\n", "info")
+    for job in ordenes[:10]:
+        log_text.insert(
+            tk.END,
+            f"   • {job.get('do_number')} | Estado: {job.get('status')} | Cliente: {job.get('deliver_to_collect_from')}\n",
+            "success"
+        )
+    if len(ordenes) > 10:
+        log_text.insert(tk.END, f"   ... y {len(ordenes)-10} más\n", "info")
+
+# -------------------------------
+# Consultar puntual Detrack
+# -------------------------------
+def consultar_puntual_detrack():
+    numero = entry_do_number_detrack.get().strip()
+    if not numero:
+        messagebox.showerror("Error", "Debe ingresar un DO Number")
+        return
+
+    orden = consulta_puntual_detrack.consultar_por_numero(numero)
+    if orden:
+        log_text.insert(
+            tk.END,
+            f"🔎 Orden encontrada: {orden.get('do_number')} | Estado: {orden.get('status')} | Cliente: {orden.get('deliver_to_collect_from')}\n",
+            "success"
+        )
+    else:
+        messagebox.showerror("Error", f"No se encontró la orden {numero} en Detrack")
+def abrir_portal_empleados():
+    webbrowser.open("https://lubrisolae.web.app")
 
 # ----------------------------
 # Ventana principal
@@ -137,7 +351,6 @@ title_label = tk.Label(header,
                        fg=COLOR_BLANCO, bg=COLOR_VERDE,
                        font=("Segoe UI", 20, "bold"))
 title_label.pack(side="left", padx=20)
-
 # ----------------------------
 # Notebook (pestañas)
 # ----------------------------
@@ -171,7 +384,6 @@ ttk.Label(frame_siigo, text="Número de factura (FV):").pack(pady=(12, 4))
 factura_entry = ttk.Entry(frame_siigo)
 factura_entry.pack(pady=4)
 ttk.Button(frame_siigo, text="Consultar factura puntual", command=consultar_factura).pack(pady=6)
-
 # Pestaña Detrack con fondo corporativo
 frame_detrack = tk.Frame(notebook, bg=COLOR_BLANCO, width=860, height=300)
 frame_detrack.pack_propagate(False)
@@ -186,9 +398,48 @@ try:
 except Exception:
     pass
 
+# Campo para ingresar la fecha en Detrack + botón
+ttk.Label(frame_detrack, text="Fecha (YYYY-MM-DD):").pack(pady=(12, 4))
+fecha_entry_detrack = ttk.Entry(frame_detrack)
+fecha_entry_detrack.pack(pady=4)
+ttk.Button(frame_detrack, text="Consultar por fecha", command=consultar_por_fecha_detrack).pack(pady=8)
+
+# Campo para ingresar el DO Number puntual en Detrack + botón
+ttk.Label(frame_detrack, text="Número de DO (Detrack):").pack(pady=(12, 4))
+entry_do_number_detrack = ttk.Entry(frame_detrack)
+entry_do_number_detrack.pack(pady=4)
+ttk.Button(frame_detrack, text="Consultar orden puntual", command=consultar_puntual_detrack).pack(pady=8)
+
+# Botones generales de acciones Detrack
 ttk.Button(frame_detrack, text="Generar Excel sin subir", command=generar_excel_sin_detrack).pack(pady=8)
 ttk.Button(frame_detrack, text="Generar Excel y subir", command=generar_excel_y_detrack).pack(pady=8)
 ttk.Button(frame_detrack, text="Subir último Excel a Detrack", command=subir_detrack).pack(pady=8)
+ttk.Button(frame_detrack, text="Crear nueva Orden/Job", command=lambda: abrir_formulario_job()).pack(pady=8)
+
+ # Pestaña Portal Empleados
+frame_empleados = tk.Frame(notebook, bg=COLOR_BLANCO, width=860, height=300)
+frame_empleados.pack_propagate(False)
+notebook.add(frame_empleados, text="Portal Empleados")
+
+ttk.Label(frame_empleados, text="Integración en desarrollo",
+           font=("Segoe UI", 14, "bold")).pack(pady=(20,10))
+# Separador visual
+ttk.Separator(frame_empleados, orient="horizontal").pack(fill="x", padx=20, pady=10)
+
+ttk.Label(frame_empleados, text="Acceso al portal de empleados Lubrisol",
+           font=("Segoe UI", 11)).pack(pady=(0,20))
+
+ttk.Button(frame_empleados, text="Abrir portal en navegador",
+            command=abrir_portal_empleados).pack(pady=10)
+
+ # Opcional: logo corporativo
+try:
+     logo_img_emp = Image.open("logo_lubrisol.png").resize((120, 60))
+     logo_photo_emp = ImageTk.PhotoImage(logo_img_emp)
+     tk.Label(frame_empleados, image=logo_photo_emp, bg=COLOR_BLANCO).pack(pady=10)
+except Exception:
+     ttk.Label(frame_empleados, text="Lubrisol de Colombia",
+               font=("Segoe UI", 12, "bold")).pack(pady=10)
 
 # ----------------------------
 # Área de log con título restaurado
