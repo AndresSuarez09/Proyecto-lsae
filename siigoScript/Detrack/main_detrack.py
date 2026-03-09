@@ -9,6 +9,7 @@ from siigoScript.Detrack.payload_builder_detrack import build_payload
 from siigoScript.Detrack.uploader_detrack import enviar_orden
 from siigoScript.Detrack import config_detrack as config   # configuración específica de Detrack
 
+
 def obtener_ultimo_excel():
     """
     Busca el último archivo Excel generado en la carpeta de resultados.
@@ -32,9 +33,16 @@ def main():
     print(f"📂 Usando archivo Excel: {ruta_excel}")
     df = pd.read_excel(ruta_excel)
 
+    # ✅ Normalizar nombres de columnas (quita espacios y caracteres invisibles)
+    df.columns = df.columns.str.strip()
+    print("Columnas detectadas:", df.columns.tolist())  # Debug opcional
+
     for _, row in df.iterrows():
+        # ✅ Validación: si BE no existe, derivar de FV
+        do_number = row["BE"] if "BE" in df.columns else f"BE-{row['FV']}"
+
         datos = {
-            "do_number": row["BE"],                     # Número de orden logística
+            "do_number": do_number,                     # Número de orden logística
             "date": row["Fecha"],                       # Fecha de la factura
             "address": row["Cliente"],                  # Nombre del cliente
             "deliver_to_collect_from": row["Cliente"],  # También usamos Cliente aquí

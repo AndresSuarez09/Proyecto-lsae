@@ -1,3 +1,4 @@
+#config.py
 # 🔐 Credenciales de autenticación
 SIIGO_USERNAME = "vannesa.alarcon@tus-cuentas.com" # marco.r@lubrisoldecolombia.com
 SIIGO_ACCESS_KEY = "Y2Q2MDBiNTktYzkyYi00NjI1LTkyMzktZDE4Mjc2NDQ0ODMxOnojaTElcVZ2MlY="

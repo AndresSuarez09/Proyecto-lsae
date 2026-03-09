@@ -1,6 +1,8 @@
 # excel_generator.py
 import config
 import os
+import glob
+import re
 import pandas as pd
 import requests
 import time
@@ -10,7 +12,7 @@ from openpyxl.styles import Font, Alignment, PatternFill
 clientes_cache = {}
 consultas_realizadas = 0
 
-# 🔧 Resolver cliente por identificación
+# 🔧 Resolver cliente por identificación (respaldo)
 def resolver_cliente_por_identificacion(identificacion, token, clientes_resueltos=None):
     global consultas_realizadas
 
@@ -82,37 +84,63 @@ def obtener_diccionario_vendedores(token):
     except Exception:
         return {}
 
-# ✅ Generar Excel con columnas FV y BE
+# 🔧 Aplicar formato estético a un Excel (incluye relleno alterno)
+def aplicar_formato_excel(ruta, columnas_ordenadas):
+    wb = load_workbook(ruta)
+    ws = wb.active
+
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    center_align = Alignment(horizontal="center", vertical="center")
+    fill_gray = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+
+    # Encabezados
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+
+    # Ajuste de ancho de columnas
+    for column_cells in ws.columns:
+        length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
+        ws.column_dimensions[column_cells[0].column_letter].width = min(length + 2, 50)
+
+    # Formato monetario y relleno alterno
+    for idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(columnas_ordenadas)), start=2):
+        if idx % 2 == 0:  # filas pares → gris claro
+            for cell in row:
+                cell.fill = fill_gray
+        for cell in row:
+            if cell.column_letter in ["G", "H"]:  # columnas Total y Saldo
+                cell.number_format = '"$"#,##0.00'
+
+    wb.save(ruta)
+    print(f"✅ Formato aplicado: {ruta}")
+
 def generar_excel(facturas, token, clientes_resueltos=None):
     if not facturas:
         print("⚠️ No hay facturas para generar el Excel.")
         return None
 
+    if clientes_resueltos is None:
+        clientes_resueltos = {}
+
     vendedores_diccionario = obtener_diccionario_vendedores(token)
-
     os.makedirs(config.CARPETA_SALIDA, exist_ok=True)
+
     base_name = config.NOMBRE_ARCHIVO_EXCEL
-    ruta_archivo = os.path.join(config.CARPETA_SALIDA, base_name)
+    nombre_sin_ext, ext = os.path.splitext(base_name)
+    if not ext:
+        ext = ".xlsx"
+        base_name = f"{base_name}{ext}"
 
-    # 🔒 Lógica incremental: si existe, crear facturas_lubrisol(1).xlsx, (2), etc.
-    if os.path.exists(ruta_archivo):
-        nombre, ext = os.path.splitext(base_name)
-        contador = 1
-        while True:
-            nuevo_nombre = f"{nombre}({contador}){ext}"
-            ruta_archivo = os.path.join(config.CARPETA_SALIDA, nuevo_nombre)
-            if not os.path.exists(ruta_archivo):
-                break
-            contador += 1
-
-    print(f"📁 Generando archivo Excel en: {ruta_archivo}")
+    ruta_fija = os.path.join(config.CARPETA_SALIDA, base_name)
+    print(f"📁 Generando archivo Excel (borrador) en: {ruta_fija}")
 
     registros = []
     for f in facturas:
         if isinstance(f, dict):
-            productos = []
-            codigos = []
-
+            productos, codigos = [], []
             for item in f.get("items", []):
                 if isinstance(item, dict):
                     nombre = item.get("description", "Sin nombre")
@@ -122,27 +150,29 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                     productos.append(f"{nombre} ({cantidad} x {precio:,}) = {total:,}")
                     codigos.append(str(item.get("code", "")))
 
+            # Cliente
             cliente_obj = f.get("customer", {})
-            cliente_identificacion = cliente_obj.get("identification")
-            cliente_nombre, cliente_identificacion = resolver_cliente_por_identificacion(
-                cliente_identificacion, token, clientes_resueltos
-            )
+            clave_cliente = cliente_obj.get("id") or cliente_obj.get("identification")
+            cliente_nombre = clientes_resueltos.get(clave_cliente, "SIN NOMBRE")
+            nit_cliente = cliente_obj.get("identification")
 
+            # Vendedor
             vendedor_id = f.get("seller")
             vendedor_info = vendedores_diccionario.get(vendedor_id, {})
             vendedor_nombre = vendedor_info.get("nombre", f"ID: {vendedor_id}")
             email_vendedor = vendedor_info.get("email", "")
             id_vendedor = vendedor_info.get("identification", "")
 
-            numero_fv = f.get("number")
+            # Factura
+            numero_fv = str(f.get("number")) if f.get("number") else None
             numero_be = numero_fv.replace("FV", "BE") if numero_fv else None
 
             registros.append({
-                "Número FV": numero_fv,
-                "Número BE": numero_be,
+                "FV": numero_fv,
+                "BE": numero_be,
                 "Fecha": f.get("date"),
                 "Cliente": cliente_nombre,
-                "Identificación": cliente_identificacion,
+                "Identificación": nit_cliente,
                 "Vendedor": vendedor_nombre,
                 "Total": f.get("total"),
                 "Saldo": f.get("balance"),
@@ -151,37 +181,38 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                 "ID vendedor": id_vendedor,
                 "Código producto": "; ".join(codigos)
             })
-
-    columnas_ordenadas = [
-        "Número FV", "Número BE", "Fecha", "Cliente", "Identificación", "Vendedor",
+        columnas_ordenadas = [
+        "FV", "BE", "Fecha", "Cliente", "Identificación", "Vendedor",
         "Total", "Saldo", "Productos", "Email vendedor", "ID vendedor", "Código producto"
     ]
 
     df = pd.DataFrame(registros)
+    for col in columnas_ordenadas:
+        if col not in df.columns:
+            df[col] = None
     df = df[columnas_ordenadas]
-    df.to_excel(ruta_archivo, index=False)
 
-    wb = load_workbook(ruta_archivo)
-    ws = wb.active
+    # Guardar borrador fijo y aplicar formato
+    df.to_excel(ruta_fija, index=False)
+    aplicar_formato_excel(ruta_fija, columnas_ordenadas)
 
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-    center_align = Alignment(horizontal="center", vertical="center")
+    # Crear copia incremental y aplicar formato
+    archivos_coincidentes = glob.glob(os.path.join(config.CARPETA_SALIDA, f"{nombre_sin_ext}(*).xlsx"))
+    max_index = 0
+    regex_indice = re.compile(rf"{re.escape(nombre_sin_ext)}\((\d+)\)\.xlsx$")
+    for a in archivos_coincidentes:
+        base = os.path.basename(a)
+        m = regex_indice.match(base)
+        if m:
+            idx = int(m.group(1))
+            if idx > max_index:
+                max_index = idx
 
-    for cell in ws[1]:
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = center_align
+    siguiente = max_index + 1
+    nuevo_nombre = f"{nombre_sin_ext}({siguiente}).xlsx"
+    ruta_incremental = os.path.join(config.CARPETA_SALIDA, nuevo_nombre)
+    df.to_excel(ruta_incremental, index=False)
+    aplicar_formato_excel(ruta_incremental, columnas_ordenadas)
 
-    for column_cells in ws.columns:
-        length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
-        ws.column_dimensions[column_cells[0].column_letter].width = length + 2
-
-    for row in ws.iter_rows(min_row=2, min_col=1, max_col=len(columnas_ordenadas)):
-        for cell in row:
-            if cell.column_letter in ["G", "H"]:  # Total y Saldo
-                cell.number_format = '"$"#,##0.00'
-
-    wb.save(ruta_archivo)
-    print("✅ Archivo Excel generado con columnas FV y BE.")
-    return ruta_archivo
+    print("✅ Archivos Excel generados con formato aplicado.")
+    return ruta_fija        

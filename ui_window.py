@@ -1,17 +1,25 @@
 # ui_window.py
+import config
+import webview
+import os  # manejo de rutas
+import requests  # llamadas HTTP a APIs
+import webbrowser  # abrir enlaces en navegador
 import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
-from datetime import datetime, timedelta
-from auth_siigo import obtener_token_siigo
-from query_facturas import consultar_facturas_siigo
-from main import resolver_clientes, generar_excel
-from siigoScript.Detrack.main_detrack import main as flujo_detrack
-from siigoScript.Detrack import payload_builder_form, uploader_detrack
-from siigoScript.Detrack import consultas_detrack
-from siigoScript.Detrack import consulta_puntual_detrack
-import requests
-import webbrowser
+from tkinter import ttk
+from tkinterweb import HtmlFrame  # navegador embebido
+from datetime import datetime, timedelta  # fechas y tiempos
+import tkinter as tk  # base de la interfaz
+from tkinter import simpledialog, ttk, messagebox  # diálogos y widgets
+import pandas as pd  # manejo de datos y Excel
+from PIL import Image, ImageTk  # imágenes en la interfaz
+from auth_siigo import obtener_token_siigo  # token Siigo
+from query_facturas import consultar_facturas_siigo  # consulta facturas
+from main import resolver_clientes  # resolver clientes
+from excel_generator import generar_excel  # generar Excel
+from siigoScript.Detrack.excel_detrack import generar_excel_detrack # generar Excel Detrack
+from siigoScript.Detrack.main_detrack import main as flujo_detrack  # flujo principal Detrack
+from siigoScript.Detrack import payload_builder_form, uploader_detrack  # construcción y subida de payloads
+from siigoScript.Detrack import consultas_detrack, consulta_puntual_detrack  # consultas a Detrack
 
 # Paleta corporativa Lubrisol
 COLOR_VERDE = "#006633"
@@ -48,7 +56,7 @@ def consultar_por_fecha():
     facturas = consultar_facturas_siigo(token, fecha)
     mostrar_facturas_en_log(facturas, f"del {fecha}")
     clientes = resolver_clientes(token, facturas)
-    generar_excel(facturas, clientes)
+    generar_excel(facturas, token, clientes)
 
 def consultar_hoy():
     hoy_local = datetime.now()
@@ -83,22 +91,54 @@ def generar_excel_y_detrack():
     hoy_local = datetime.now()
     hoy_utc = hoy_local + timedelta(hours=5)
     fecha = hoy_utc.strftime("%Y-%m-%d")
+
+    # Consultar facturas en Siigo
     facturas = consultar_facturas_siigo(token, fecha)
+    if not facturas:
+        messagebox.showinfo("Sin facturas", f"No se encontraron facturas en Siigo para {fecha}")
+        return
+
     mostrar_facturas_en_log(facturas, f"de hoy ({fecha})")
+
+    # Resolver clientes
     clientes = resolver_clientes(token, facturas)
-    generar_excel(facturas, clientes)
+
+    # ✅ Generar Excel con estética rojo/negro (Siigo → Detrack)
+    ruta_excel = generar_excel(facturas, token, clientes)
+    if ruta_excel:
+        log_text.insert(tk.END, f"✅ Excel generado: {ruta_excel}\n", "success")
+
+    # ✅ Subir a Detrack
     flujo_detrack()
+    log_text.insert(tk.END, "✅ Órdenes enviadas a Detrack\n", "success")
+
 
 def generar_excel_sin_detrack():
     hoy_local = datetime.now()
     hoy_utc = hoy_local + timedelta(hours=5)
     fecha = hoy_utc.strftime("%Y-%m-%d")
+
+    # Consultar facturas en Siigo
     facturas = consultar_facturas_siigo(token, fecha)
+    if not facturas:
+        messagebox.showinfo("Sin facturas", f"No se encontraron facturas en Siigo para {fecha}")
+        return
+
     mostrar_facturas_en_log(facturas, f"de hoy ({fecha})")
+
+    # Resolver clientes
     clientes = resolver_clientes(token, facturas)
-    generar_excel(facturas, clientes)
+
+    # ✅ Generar Excel con estética rojo/negro (Siigo → Detrack)
+    ruta_excel = generar_excel(facturas, token, clientes)
+    if ruta_excel:
+        log_text.insert(tk.END, f"✅ Excel generado (sin subir): {ruta_excel}\n", "success")
+
+    # ❌ No se sube a Detrack aquí, solo se genera el archivo
+
 
 def subir_detrack():
+    # ✅ Usa el último Excel generado y lo sube a Detrack
     flujo_detrack()
     log_text.insert(tk.END, "✅ Órdenes enviadas desde último Excel\n", "success")
 # ----------------------------
@@ -288,6 +328,42 @@ def consultar_por_fecha_detrack():
     if len(ordenes) > 10:
         log_text.insert(tk.END, f"   ... y {len(ordenes)-10} más\n", "info")
 
+    # ✅ Generar Excel con las órdenes consultadas
+    from siigoScript.Detrack.excel_detrack import generar_excel_detrack
+    ruta_excel = generar_excel_detrack(ordenes)
+    if ruta_excel:
+        log_text.insert(tk.END, f"✅ Excel generado: {ruta_excel}\n", "success")
+# Consultar por rango de fecha Detrack
+def consultar_por_rango():
+    fecha_inicio = simpledialog.askstring("Fecha inicio", "Ingrese fecha inicio (YYYY-MM-DD):")
+    fecha_fin = simpledialog.askstring("Fecha fin", "Ingrese fecha fin (YYYY-MM-DD):")
+
+    if not fecha_inicio or not fecha_fin:
+        messagebox.showinfo("Rango inválido", "Debe ingresar ambas fechas")
+        return
+
+    url = f"https://app.detrack.com/api/v2/jobs?start_date={fecha_inicio}&end_date={fecha_fin}"
+    headers = {"X-API-KEY": "7a09cb54a6c46023f37205e3e0adbbb9c8a985fa825cf42a"}
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        ordenes = response.json()
+
+        data = ordenes.get("data", [])
+
+        if not data:
+            messagebox.showinfo("Sin resultados", "No hay órdenes en ese rango de fechas")
+            return
+
+        # ✅ Usar tu generador de Excel Detrack
+        ruta_salida = generar_excel_detrack(data)
+
+        messagebox.showinfo("Consulta realizada", f"✅ Excel generado: {ruta_salida}")
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Ocurrió un error al consultar Detrack:\n{e}")
+
 # -------------------------------
 # Consultar puntual Detrack
 # -------------------------------
@@ -304,8 +380,17 @@ def consultar_puntual_detrack():
             f"🔎 Orden encontrada: {orden.get('do_number')} | Estado: {orden.get('status')} | Cliente: {orden.get('deliver_to_collect_from')}\n",
             "success"
         )
+
+        # ✅ Generar Excel con la orden puntual
+        from siigoScript.Detrack.excel_detrack import generar_excel_detrack
+        ruta_excel = generar_excel_detrack([orden])  # pasamos lista con un solo elemento
+        if ruta_excel:
+            log_text.insert(tk.END, f"✅ Excel generado: {ruta_excel}\n", "success")
+
     else:
         messagebox.showerror("Error", f"No se encontró la orden {numero} en Detrack")
+
+#portal empleados lubrisol
 def abrir_portal_empleados():
     webbrowser.open("https://lubrisolae.web.app")
 
@@ -415,24 +500,72 @@ ttk.Button(frame_detrack, text="Generar Excel sin subir", command=generar_excel_
 ttk.Button(frame_detrack, text="Generar Excel y subir", command=generar_excel_y_detrack).pack(pady=8)
 ttk.Button(frame_detrack, text="Subir último Excel a Detrack", command=subir_detrack).pack(pady=8)
 ttk.Button(frame_detrack, text="Crear nueva Orden/Job", command=lambda: abrir_formulario_job()).pack(pady=8)
+ttk.Button(frame_detrack, text="Consultar por rango de fechas", command=consultar_por_rango).pack(pady=8)
 
- # Pestaña Portal Empleados
-frame_empleados = tk.Frame(notebook, bg=COLOR_BLANCO, width=860, height=300)
+# -----------------------------------------------------------------------------
+# Pestaña Portal Empleados (PyWebview con barra de navegación)
+# -----------------------------------------------------------------------------
+import tkinter as tk
+from tkinter import ttk
+import webview
+
+frame_empleados = tk.Frame(notebook, bg=COLOR_BLANCO, width=860, height=600)
 frame_empleados.pack_propagate(False)
 notebook.add(frame_empleados, text="Portal Empleados")
 
-ttk.Label(frame_empleados, text="Integración en desarrollo",
-           font=("Segoe UI", 14, "bold")).pack(pady=(20,10))
-# Separador visual
-ttk.Separator(frame_empleados, orient="horizontal").pack(fill="x", padx=20, pady=10)
+# Variables de control
+current_url = tk.StringVar(value="https://lubrisolae.web.app")
+browser_window = None
 
-ttk.Label(frame_empleados, text="Acceso al portal de empleados Lubrisol",
-           font=("Segoe UI", 11)).pack(pady=(0,20))
+# Funciones de navegación
+def abrir_portal():
+    global browser_window
+    # Crear ventana PyWebview con el portal
+    browser_window = webview.create_window("Portal Empleados - Lubrisol", current_url.get())
+    webview.start()
 
-ttk.Button(frame_empleados, text="Abrir portal en navegador",
-            command=abrir_portal_empleados).pack(pady=10)
+def cargar_url():
+    if browser_window:
+        browser_window.load_url(current_url.get())
 
+def ir_atras():
+    if browser_window:
+        browser_window.evaluate_js("history.back()")
+
+def ir_adelante():
+    if browser_window:
+        browser_window.evaluate_js("history.forward()")
+
+def recargar():
+    if browser_window:
+        browser_window.reload()
+
+# Barra de navegación
+nav_frame = tk.Frame(frame_empleados, bg=COLOR_BLANCO)
+nav_frame.pack(fill="x", pady=5)
+
+btn_atras = ttk.Button(nav_frame, text="⬅ Atrás", command=ir_atras)
+btn_atras.pack(side="left", padx=5)
+
+btn_adelante = ttk.Button(nav_frame, text="➡ Adelante", command=ir_adelante)
+btn_adelante.pack(side="left", padx=5)
+
+btn_recargar = ttk.Button(nav_frame, text="🔄 Recargar", command=recargar)
+btn_recargar.pack(side="left", padx=5)
+
+entry_url = ttk.Entry(nav_frame, textvariable=current_url, width=60)
+entry_url.pack(side="left", padx=5)
+
+btn_ir = ttk.Button(nav_frame, text="Ir", command=cargar_url)
+btn_ir.pack(side="left", padx=5)
+
+# Botón para abrir el portal
+ttk.Button(frame_empleados, text="Abrir portal completo",
+           command=abrir_portal).pack(pady=20)
+
+ #----------------------------
  # Opcional: logo corporativo
+ #----------------------------
 try:
      logo_img_emp = Image.open("logo_lubrisol.png").resize((120, 60))
      logo_photo_emp = ImageTk.PhotoImage(logo_img_emp)

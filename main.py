@@ -6,6 +6,7 @@ import requests
 import pandas as pd
 from auth_siigo import obtener_token_siigo
 import config
+from excel_generator import generar_excel
 
 def consultar_facturas(token):
     print("🔗 Conectando con Siigo API para listar facturas...")
@@ -121,7 +122,7 @@ def resolver_clientes(token, facturas):
     print(f"📊 Total clientes resueltos: {len(clientes_resueltos)}")
     return clientes_resueltos
 
-def generar_excel(facturas, clientes):
+def generar_excel_simple(facturas, clientes):
     os.makedirs(config.CARPETA_SALIDA, exist_ok=True)
     ruta_excel = os.path.join(config.CARPETA_SALIDA, config.NOMBRE_ARCHIVO_EXCEL)
 
