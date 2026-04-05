@@ -10,9 +10,8 @@ def build_payload(data):
             "type": "Delivery",
             "do_number": data.get("do_number"),
             "date": data.get("date"),
-            "address": data.get("address"),
-            "company_name": data.get("company_name"),
-            "deliver_to_collect_from": data.get("deliver_to"),
+            "address": data.get("address"),                        # Dirección física
+            "deliver_to_collect_from": data.get("deliver_to_collect_from"),   # ✅ Nombre del cliente/empresa
             "phone_number": data.get("phone_number"),
             "invoice_number": data.get("invoice_number"),
             "invoice_amount": data.get("invoice_amount"),

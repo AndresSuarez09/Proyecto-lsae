@@ -9,9 +9,10 @@ from tkinter import ttk
 from tkinterweb import HtmlFrame  # navegador embebido
 from datetime import datetime, timedelta  # fechas y tiempos
 import tkinter as tk  # base de la interfaz
-from tkinter import simpledialog, ttk, messagebox  # diálogos y widgets
+from tkinter import simpledialog, ttk, messagebox, filedialog  # diálogos y widgets
 import pandas as pd  # manejo de datos y Excel
 from PIL import Image, ImageTk  # imágenes en la interfaz
+import shutil  # copiar archivos (para guardar copia personalizada)
 from auth_siigo import obtener_token_siigo  # token Siigo
 from query_facturas import consultar_facturas_siigo  # consulta facturas
 from main import resolver_clientes  # resolver clientes
@@ -269,8 +270,7 @@ def abrir_formulario_job():
             "do_number": entry_do_no.get(),
             "date": entry_date.get(),
             "address": entry_address.get(),
-            "company_name": entry_company.get(),
-            "deliver_to": entry_deliver_to.get(),
+            "deliver_to_collect_from": entry_deliver_to.get(),
             "phone_number": entry_phone.get(),
             "invoice_number": entry_invoice_no.get(),
             "invoice_amount": entry_invoice_amount.get(),
@@ -333,36 +333,61 @@ def consultar_por_fecha_detrack():
     ruta_excel = generar_excel_detrack(ordenes)
     if ruta_excel:
         log_text.insert(tk.END, f"✅ Excel generado: {ruta_excel}\n", "success")
+#---------------------------------------
 # Consultar por rango de fecha Detrack
+#---------------------------------------
 def consultar_por_rango():
     fecha_inicio = simpledialog.askstring("Fecha inicio", "Ingrese fecha inicio (YYYY-MM-DD):")
     fecha_fin = simpledialog.askstring("Fecha fin", "Ingrese fecha fin (YYYY-MM-DD):")
 
+    # Validar que ambas fechas estén presentes
     if not fecha_inicio or not fecha_fin:
         messagebox.showinfo("Rango inválido", "Debe ingresar ambas fechas")
         return
 
-    url = f"https://app.detrack.com/api/v2/jobs?start_date={fecha_inicio}&end_date={fecha_fin}"
-    headers = {"X-API-KEY": "7a09cb54a6c46023f37205e3e0adbbb9c8a985fa825cf42a"}
-
+    # Validar formato de fecha
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        ordenes = response.json()
+        inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+        fin = datetime.strptime(fecha_fin, "%Y-%m-%d")
+    except ValueError:
+        messagebox.showerror("Formato inválido", "Las fechas deben estar en formato YYYY-MM-DD")
+        print("❌ Fechas inválidas, no se consultó la API")
+        return
 
-        data = ordenes.get("data", [])
+    # API Key fija (ya puesta aquí)
+    api_key = "7a09cb54a6c46023f37205e3e0adbbb9c8a985fa825cf42a"
+    headers = {"X-API-KEY": api_key}
 
-        if not data:
-            messagebox.showinfo("Sin resultados", "No hay órdenes en ese rango de fechas")
-            return
+    data_total = []
 
-        # ✅ Usar tu generador de Excel Detrack
-        ruta_salida = generar_excel_detrack(data)
+    # Iterar día por día en el rango
+    fecha_actual = inicio
+    while fecha_actual <= fin:
+        fecha_str = fecha_actual.strftime("%Y-%m-%d")
+        url = f"https://app.detrack.com/api/v2/dn/jobs?date={fecha_str}&page=1&limit=50&type=Delivery"
 
-        messagebox.showinfo("Consulta realizada", f"✅ Excel generado: {ruta_salida}")
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            ordenes = response.json()
+            data_total.extend(ordenes.get("data", []))
+            print(f"✅ Consultado {fecha_str}, registros: {len(ordenes.get('data', []))}")
+        except Exception as e:
+            print(f"❌ Error consultando {fecha_str}: {e}")
 
-    except Exception as e:
-        messagebox.showerror("Error", f"Ocurrió un error al consultar Detrack:\n{e}")
+        fecha_actual += timedelta(days=1)
+
+    if not data_total:
+        messagebox.showinfo("Sin resultados", "No hay órdenes en ese rango de fechas")
+        print("ℹ️ No se encontraron órdenes en ese rango de fechas")
+        return
+
+    # ✅ Usar tu generador de Excel Detrack
+    ruta_salida = generar_excel_detrack(data_total)
+
+    # Mostrar en interfaz y consola
+    messagebox.showinfo("Consulta realizada", f"✅ Excel generado: {ruta_salida}")
+    print(f"✅ Excel generado: {ruta_salida}")
 
 # -------------------------------
 # Consultar puntual Detrack

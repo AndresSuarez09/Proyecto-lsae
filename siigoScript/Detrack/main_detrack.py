@@ -41,16 +41,22 @@ def main():
         # ✅ Validación: si BE no existe, derivar de FV
         do_number = row["BE"] if "BE" in df.columns else f"BE-{row['FV']}"
 
+        # ✅ Corrección:
+        # - Usamos "address" para la dirección real.
+        # - Usamos "company_name" para el nombre del cliente/empresa.
+        # - Cambiamos "phone" por "phone_number" para que sea consistente con el payload.
         datos = {
             "do_number": do_number,                     # Número de orden logística
             "date": row["Fecha"],                       # Fecha de la factura
-            "address": row["Cliente"],                  # Nombre del cliente
-            "deliver_to_collect_from": row["Cliente"],  # También usamos Cliente aquí
-            "phone": row["FV"],                         # Usamos FV como identificación
+            "address": row["address"],                  # Dirección real
+            "deliver_to_collect_from": row["company_name"],  # Nombre del cliente/empresa
+            "phone_number": row["FV"],                  # ✅ clave corregida
             "items": row["Productos"]                   # Lista de productos
         }
 
+        print("DEBUG DATOS:", datos)  # 🧪 validación
         payload = build_payload(datos)
+        print("DEBUG PAYLOAD:", payload)  # 🧪 validación
         enviar_orden(payload)
 
     print("✅ Flujo finalizado. Órdenes enviadas a Detrack.")
