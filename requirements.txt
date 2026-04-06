@@ -1,9 +1,8 @@
 
-fastapi
-uvicorn
-jinja2
-pandas
-requests
-openpyxl
-numpy
-pillow
+fastapi==0.115.0
+uvicorn==0.30.0
+jinja2==3.1.3
+starlette==0.37.2
+pandas==2.2.2
+requests==2.31.0
+openpyxl==3.1.2
