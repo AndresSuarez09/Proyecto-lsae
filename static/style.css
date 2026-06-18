@@ -1,0 +1,300 @@
+/* style.css */
+/* Paleta corporativa Lubrisol */
+:root {
+    --verde: #006633;
+    --verde-hover: #00994d;
+    --azul: #004080;
+    --azul-hover: #0059b3;
+    --blanco: #ffffff;
+    --gris-oscuro: #1c1c1c;
+    --gris-claro: #f5f5f5;
+    --rojo: #c00000;
+    --sombra: rgba(0,0,0,0.2);
+}
+
+body {
+    font-family: "Roboto", sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, var(--gris-claro), #e0f2f1);
+    color: var(--gris-oscuro);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 240px;
+    background: var(--gris-oscuro);
+    color: var(--blanco);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 30px 20px;
+    box-shadow: 4px 0 12px var(--sombra);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.sidebar img {
+    width: 180px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+.sidebar button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--blanco);
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+.sidebar button:hover {
+    background: var(--verde);
+}
+.sidebar button.active {
+    background: var(--verde);
+    color: var(--blanco);
+}
+
+/* Main */
+.main {
+    margin-left: 240px;
+    padding: 40px;
+    flex: 1;
+    padding-bottom: 220px;
+    animation: fadeIn 0.6s ease;
+}
+
+/* Hero banner más compacto */
+.hero {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url("/static/LubrisolEngranaje.jpg") center/cover no-repeat;
+    color: var(--blanco);
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 16px var(--sombra);
+}
+.hero h2 {
+    font-size: 28px;
+    margin: 0;
+    font-weight: 700;
+}
+.hero p {
+    font-size: 16px;
+    margin-top: 6px;
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px var(--sombra);
+    padding: 25px;
+    margin-bottom: 25px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+}
+.card:hover { transform: translateY(-6px); box-shadow: 0 6px 16px var(--sombra); }
+.card img {
+    width: 60%;
+    max-height: 220px;
+    display: block;
+    margin: 0 auto 15px auto;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 10px var(--sombra);
+}
+
+/* Inputs */
+.card input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.card input:focus {
+    outline: none;
+    border-color: var(--azul);
+    box-shadow: 0 0 6px var(--azul-hover);
+}
+
+/* Botones */
+button { 
+    border: none; 
+    padding: 12px 20px; 
+    margin: 8px 0; 
+    border-radius: 6px; 
+    font-size: 14px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    transition: all 0.3s ease; 
+}
+button:hover { transform: scale(1.05); }
+.btn-exito { background: linear-gradient(135deg, var(--verde), var(--azul)); color: var(--blanco); }
+.btn-exito:hover { filter: brightness(1.2); }
+.btn-info { background: var(--azul); color: var(--blanco); }
+.btn-info:hover { background: var(--azul-hover); }
+.btn-peligro { background: var(--rojo); color: var(--blanco); }
+.btn-peligro:hover { filter: brightness(1.2); }
+
+/* Tablas */
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { padding: 14px; text-align: left; border-bottom: 1px solid var(--gris-claro); }
+th { background: var(--verde); color: var(--blanco); text-transform: uppercase; }
+tr:nth-child(even) { background: var(--gris-claro); }
+tr:hover { background: #e8f5e9; transition: background 0.3s ease; }
+
+/* Tabs */
+.tab-content { display: none; animation: fadeIn 0.5s ease; }
+.tab-content.active { display: block; }
+
+/* Log fijo abajo */
+#logArea {
+    position: fixed;
+    bottom: 0;
+    left: 240px;
+    right: 0;
+    height: 180px;
+    background: rgba(30,30,30,0.95);
+    backdrop-filter: blur(6px);
+    color: #00ff00;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    padding: 12px;
+    border-top: 2px solid var(--verde);
+    overflow-y: auto;
+    z-index: 1000;
+    scrollbar-width: thin;
+    scrollbar-color: #00ff00 #1c1c1c;
+}
+#logArea::before {
+    content: "Registro de acciones";
+    display: block;
+    color: var(--blanco);
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+#logArea a {
+    color: #4fc3f7;
+    text-decoration: none;
+    display: block;
+    margin: 2px 0;
+}
+#logArea a:hover {
+    text-decoration: underline;
+    color: #81d4fa;
+}
+#logArea .factura::before { content: "📂 "; }
+#logArea .trazabilidad::before { content: "📝 "; }
+
+/* Footer */
+footer {
+    background: var(--gris-oscuro);
+    color: var(--blanco);
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    border-radius: 8px;
+}
+footer img { height: 40px; margin-bottom: 10px; }
+
+/* Animaciones */
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* Login */
+body.login-page {
+    display: block;
+    background: linear-gradient(135deg, var(--gris-claro), #e0f2f1);
+}
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+}
+.login-card {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px var(--sombra);
+    text-align: center;
+    width: 340px;
+    animation: fadeIn 0.6s ease;
+    display: flex;
+    flex-direction: column;
+}
+.login-logo {
+    width: 350px;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px var(--sombra);
+}
+.login-card h2 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    color: var(--azul);
+    margin-bottom: 1.5rem;
+}
+.login-card label {
+    display: block;
+    text-align: left;
+    margin-top: 1rem;
+    font-weight: 500;
+    color: var(--gris-oscuro);
+}
+.login-card input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.login-card input:focus {
+    outline: none;
+    border-color: var(--verde);
+    box-shadow: 0 0 6px var(--verde-hover);
+}
+.login-message {
+    margin-top: 1rem;
+    color: var(--rojo);
+    font-weight: bold;
+}
+.login-card form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+}
+.login-card .btn-exito {
+    width: 100%;
+    padding: 0.8rem;
+    background: linear-gradient(135deg, var(--verde), var(--azul));
+    color: var(--blanco);
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+.login-card .btn-exito:hover {
+    filter: brightness(1.2);
+    transform: scale(1.05);
+}

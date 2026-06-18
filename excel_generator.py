@@ -251,4 +251,4 @@ def generar_excel(facturas, token, clientes_resueltos=None):
     aplicar_formato_excel(ruta_incremental, columnas_ordenadas)
 
     print("✅ Archivos Excel generados con formato aplicado.")
-    return ruta_fija
+    return os.path.basename(ruta_fija)

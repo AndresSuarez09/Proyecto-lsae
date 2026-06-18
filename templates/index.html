@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Lubrisol - Integración Siigo ↔ Detrack</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar con logo -->
+    <div class="sidebar">
+        <img src="/static/LogoNegro.png" alt="Lubrisol">
+        <button onclick="openTab(event, 'siigo')">📊 Consultas Siigo</button>
+        <button onclick="openTab(event, 'detrack')">🚚 Acciones Detrack</button>
+        <button onclick="openTab(event, 'empleados')">👥 Portal Empleados</button>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="main">
+        <!-- Hero banner reducido -->
+        <div class="hero">
+            <h2>Integración Siigo ↔ Detrack</h2>
+        </div>
+
+        <!-- Pestaña Siigo -->
+        <div id="siigo" class="tab-content active">
+            <div class="card">
+                <h2>Consultas Siigo</h2>
+                <img src="/static/LubrisolAguita.jpg" alt="Facturación Siigo">
+                <label>Fecha (YYYY-MM-DD):</label>
+                <input type="date" id="fecha_siigo">
+                <button class="btn-exito" onclick="consultarFacturasFecha()">Consultar por fecha 📅</button>
+                <button class="btn-info" onclick="consultarFacturasHoy()">Consultar facturas de hoy 📊</button>
+                <label>Número de factura (FV):</label>
+                <input type="text" id="factura_siigo">
+                <button class="btn-exito" onclick="consultarFacturaPuntual()">Consultar factura puntual 🔎</button>
+                <!-- Botón nuevo para listar resultados -->
+                <button class="btn-info" onclick="listarResultados()">Ver todos los Excel generados 📂</button>
+                <table id="tablaSiigo">
+                    <thead style="display:none;">
+                        <tr><th>Número</th><th>Cliente</th><th>Valor</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pestaña Detrack -->
+        <div id="detrack" class="tab-content">
+            <div class="card">
+                <h2>Acciones Detrack</h2>
+                <img src="/static/LubrisolDesengrasante.jpg" alt="Logística Detrack">
+                <button class="btn-info" onclick="generarExcelSinDetrack()">Generar Excel sin subir 📁</button>
+                <button class="btn-exito" onclick="generarExcelYDetrack()">Generar Excel y subir 🚚</button>
+                <button class="btn-peligro" onclick="subirDetrack()">Subir último Excel a Detrack ⬆</button>
+                <label>Fecha (YYYY-MM-DD):</label>
+                <input type="date" id="fecha_detrack">
+                <button class="btn-info" onclick="consultarDetrackFecha()">Consultar órdenes por fecha 📦</button>
+                <label>Número de DO (Detrack):</label>
+                <input type="text" id="do_detrack">
+                <button class="btn-exito" onclick="consultarDetrackPuntual()">Consultar orden puntual 🔎</button>
+
+                <h3>Crear nueva Orden/Job</h3>
+                <!-- Botón que abre/cierra el formulario -->
+                <button class="btn-exito" onclick="toggleFormDetrack()">➕ Nueva Orden</button>
+
+                <!-- Formulario oculto por defecto -->
+                <div id="formDetrack" style="display:none; margin-top:10px;">
+                    <label>Número de orden (DO):</label>
+                    <input type="text" id="do_number">
+
+                    <label>Fecha:</label>
+                    <input type="date" id="date_detrack">
+
+                    <label>Dirección:</label>
+                    <input type="text" id="address_detrack">
+
+                    <label>Cliente:</label>
+                    <input type="text" id="customer_detrack">
+
+                    <label>Item details:</label>
+                    <textarea id="items_detrack" placeholder="Lista de productos"></textarea>
+
+                    <button class="btn-exito" onclick="crearJobDetrack()">Crear Job en Detrack 📝</button>
+                </div>
+
+                <!-- Botón nuevo para listar salida -->
+                <button class="btn-info" onclick="listarSalida()">Ver trazabilidad completa 📝</button>
+                <table id="tablaDetrack">
+                    <thead style="display:none;">
+                        <tr><th>DO</th><th>Fecha</th><th>Cliente</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pestaña Empleados -->
+        <div id="empleados" class="tab-content">
+            <div class="card">
+                <h2>Portal Empleados</h2>
+                <img src="/static/LubrisolLubricacion.jpg" alt="Equipo Lubrisol">
+                <button class="btn-info" onclick="abrirPortal()">Abrir portal Lubrisol 🌐</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registro de acciones fijo abajo -->
+    <div id="logArea"></div>
+
+    <!-- Footer corporativo -->
+    <footer>
+        <img src="/static/LogoNegro.png" alt="Lubrisol">
+        <p>© 2026 Lubrisol - Automatización Corporativa</p>
+    </footer>
+
+        <!-- Scripts -->
+    <script>
+        function openTab(evt, tabName) {
+            const contents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < contents.length; i++) {
+                contents[i].classList.remove("active");
+            }
+            const buttons = document.querySelectorAll(".sidebar button");
+            buttons.forEach(btn => btn.classList.remove("active"));
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Ajuste: logArea acepta HTML
+        function logMessage(msg) {
+            const logArea = document.getElementById("logArea");
+            logArea.innerHTML += msg + "<br>";
+        }
+
+        // Mostrar/ocultar formulario de nueva orden
+        function toggleFormDetrack() {
+            const form = document.getElementById("formDetrack");
+            if (form.style.display === "none") {
+                form.style.display = "block";
+            } else {
+                form.style.display = "none";
+            }
+        }
+
+        // Consultas Siigo
+        async function consultarFacturasHoy() {
+            const res = await fetch("/consultar_facturas_hoy");
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Error al generar Excel");
+            }
+        }
+
+        async function consultarFacturasFecha() {
+            const fecha = document.getElementById("fecha_siigo").value;
+            const res = await fetch(`/consultar_facturas_fecha?fecha=${fecha}`);
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Error al consultar facturas");
+            }
+        }
+
+        async function consultarFacturaPuntual() {
+            const numero = document.getElementById("factura_siigo").value;
+            const res = await fetch(`/consultar_factura_puntual?numero=${numero}`);
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Factura exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Factura no encontrada");
+            }
+        }
+
+        // Acciones Detrack
+        async function generarExcelSinDetrack() {
+            const res = await fetch("/generar_excel_sin_detrack");
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Error al generar Excel");
+            }
+        }
+
+        async function generarExcelYDetrack() {
+            const res = await fetch("/generar_excel_y_detrack");
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Excel generado y enviado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Error al enviar a Detrack");
+            }
+        }
+
+        async function subirDetrack() {
+            const res = await fetch("/subir_detrack");
+            const data = await res.json();
+            logMessage(data.mensaje);
+        }
+
+        async function consultarDetrackFecha() {
+            const fecha = document.getElementById("fecha_detrack").value;
+            const res = await fetch(`/consultar_detrack_fecha?fecha=${fecha}`);
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Órdenes exportadas: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Error al consultar órdenes");
+            }
+        }
+
+        async function consultarDetrackPuntual() {
+            const numero = document.getElementById("do_detrack").value;
+            const res = await fetch(`/consultar_detrack_puntual?numero=${numero}`);
+            const data = await res.json();
+            if (data.status === "ok") {
+                logMessage(`Orden exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            } else {
+                logMessage("Orden no encontrada");
+            }
+        }
+
+        async function crearJobDetrack() {
+            const datos = {
+                do_number: document.getElementById("do_number").value,
+                date: document.getElementById("date_detrack").value,
+                address: document.getElementById("address_detrack").value,
+                customer: document.getElementById("customer_detrack").value,
+                items: document.getElementById("items_detrack").value
+            };
+
+            try {
+                const res = await fetch("/crear_job_detrack", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(datos)
+                });
+                const data = await res.json();
+                logMessage("Resultado creación Job: " + JSON.stringify(data));
+            } catch (e) {
+                logMessage("Error al crear la orden en Detrack: " + e);
+            }
+        }
+
+        // Nuevas funciones para listar archivos
+        async function listarResultados() {
+            const res = await fetch("/listar_resultados");
+            const data = await res.json();
+            if (data.archivos && data.archivos.length > 0) {
+                logMessage("📊 Archivos de facturas disponibles:");
+                data.archivos.forEach(archivo => {
+                    logMessage(`<a href="/resultados/${archivo}" target="_blank">${archivo}</a>`);
+                });
+            } else {
+                logMessage("No hay archivos en resultados.");
+            }
+        }
+
+        async function listarSalida() {
+            const res = await fetch("/listar_salida");
+            const data = await res.json();
+            if (data.archivos && data.archivos.length > 0) {
+                logMessage("📝 Registro de cambios disponible:");
+                data.archivos.forEach(archivo => {
+                    logMessage(`<a href="/salida/${archivo}" target="_blank">${archivo}</a>`);
+                });
+            } else {
+                logMessage("No hay archivos en salida.");
+            }
+        }
+
+        function abrirPortal() {
+            window.open("/portal_empleados", "_blank");
+        }
+    </script>
+</body>
+</html>

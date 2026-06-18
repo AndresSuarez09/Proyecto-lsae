@@ -1,15 +1,24 @@
-#requirements.txt
+# requirements.txt
 
-pip>=24.0
-setuptools>=70.0
-wheel>=0.43.0
+# Servidor y framework web
 fastapi==0.115.0
 uvicorn==0.30.0
+gunicorn==21.2.0
 starlette==0.37.2
+jinja2==3.1.3
+
+# Manejo de datos y Excel
+pandas==2.2.3
 numpy==1.26.4
-pandas==2.2.3 --only-binary=:all:
-requests==2.31.0
 openpyxl==3.1.2
+requests==2.31.0
+
+# Interfaz gráfica / webview (si usas escritorio)
 pywebview==4.4.1
 tkinterweb==3.22.5
 Pillow==10.3.0
+
+# Utilidades de empaquetado
+pip>=24.0
+setuptools>=70.0
+wheel>=0.43.0

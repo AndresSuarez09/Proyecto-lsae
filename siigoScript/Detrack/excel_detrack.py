@@ -100,4 +100,4 @@ def generar_excel_detrack(ordenes):
     ruta_salida = _obtener_nombre_incremental()
     wb.save(ruta_salida)
     print(f"✅ Excel generado: {ruta_salida}")
-    return ruta_salida
+    return os.path.basename(ruta_salida)
