@@ -4,18 +4,11 @@ import os
 import glob
 import pandas as pd
 
-# ✅ Imports dentro del paquete siigoScript.Detrack
 from siigoScript.Detrack.payload_builder_detrack import build_payload
 from siigoScript.Detrack.uploader_detrack import enviar_orden
-from siigoScript.Detrack import config_detrack as config   # configuración específica de Detrack
-
+from siigoScript.Detrack import config_detrack as config
 
 def obtener_ultimo_excel():
-    """
-    Busca el último archivo Excel generado en la carpeta de resultados.
-    Si hay versiones incrementales (facturas_lubrisol(1).xlsx, etc.),
-    selecciona el más reciente.
-    """
     carpeta = config.CARPETA_SALIDA
     patron = os.path.join(carpeta, "facturas_lubrisol*.xlsx")
     archivos = glob.glob(patron)
@@ -24,43 +17,68 @@ def obtener_ultimo_excel():
     archivos.sort(key=os.path.getmtime, reverse=True)
     return archivos[0]
 
-
 def main():
     print("🚀 Iniciando flujo de integración Siigo → Detrack...")
-
-    # Leer el último Excel generado por Siigo
     ruta_excel = obtener_ultimo_excel()
     print(f"📂 Usando archivo Excel: {ruta_excel}")
+    
     df = pd.read_excel(ruta_excel)
-
-    # ✅ Normalizar nombres de columnas (quita espacios y caracteres invisibles)
     df.columns = df.columns.str.strip()
-    print("Columnas detectadas:", df.columns.tolist())  # Debug opcional
+    print("Columnas detectadas:", df.columns.tolist())
 
-    for _, row in df.iterrows():
-        # ✅ Validación: si BE no existe, derivar de FV
-        do_number = row["BE"] if "BE" in df.columns else f"BE-{row['FV']}"
+    if "FV" not in df.columns:
+        print("❌ Error: No se encontró la columna 'FV' en el Excel.")
+        return
 
-        # ✅ Corrección:
-        # - Usamos "address" para la dirección real.
-        # - Usamos "company_name" para el nombre del cliente/empresa.
-        # - Cambiamos "phone" por "phone_number" para que sea consistente con el payload.
+    # Agrupar las filas por número de factura para unificar los ítems
+    facturas_agrupadas = df.groupby("FV", dropna=False)
+
+    for fv, grupo in facturas_agrupadas:
+        if pd.isna(fv) or str(fv).strip() == "":
+            continue
+
+        primera_fila = grupo.iloc[0]
+        
+        do_number = primera_fila.get("BE")
+        if pd.isna(do_number) or str(do_number).strip() == "":
+            do_number = f"BE-{fv}"
+        
+        # Construir la lista dinámica de productos para esta factura
+        items_list = []
+        for _, fila in grupo.iterrows():
+            producto = str(fila.get("Productos", "")).strip()
+            if producto and producto.lower() != "nan" and producto != "Sin productos":
+                cantidad_cruda = fila.get("Cantidad", 1)
+                try:
+                    cantidad = int(float(cantidad_cruda)) if pd.notna(cantidad_cruda) else 1
+                except ValueError:
+                    cantidad = 1
+                    
+                items_list.append({
+                    "description": producto,
+                    "quantity": cantidad
+                })
+        
+        # Respaldo por si la factura no tiene productos registrados
+        if not items_list:
+            items_list.append({"description": "Sin descripción", "quantity": 1})
+
+        # Armar el paquete de datos unificado
         datos = {
-            "do_number": do_number,                     # Número de orden logística
-            "date": row["Fecha"],                       # Fecha de la factura
-            "address": row["address"],                  # Dirección real
-            "deliver_to_collect_from": row["company_name"],  # Nombre del cliente/empresa
-            "phone_number": row["FV"],                  # ✅ clave corregida
-            "items": row["Productos"]                   # Lista de productos
+            "do_number": str(do_number).strip(),
+            "date": str(primera_fila.get("Fecha", "")).split()[0] if pd.notna(primera_fila.get("Fecha")) else "",
+            "address": str(primera_fila.get("address", "")) if pd.notna(primera_fila.get("address")) else "",
+            "deliver_to_collect_from": str(primera_fila.get("company_name", "")) if pd.notna(primera_fila.get("company_name")) else "",
+            "phone_number": str(fv).strip(),
+            "items": items_list
         }
 
-        print("DEBUG DATOS:", datos)  # 🧪 validación
+        print(f"DEBUG DATOS ({fv}):", datos)
         payload = build_payload(datos)
-        print("DEBUG PAYLOAD:", payload)  # 🧪 validación
+        print(f"DEBUG PAYLOAD ({fv}):", payload)
         enviar_orden(payload)
 
     print("✅ Flujo finalizado. Órdenes enviadas a Detrack.")
-
 
 if __name__ == "__main__":
     main()

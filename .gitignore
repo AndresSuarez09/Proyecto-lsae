@@ -1,0 +1,11 @@
+# Entornos virtuales de Python
+venv/
+env/
+
+# Archivos compilados
+__pycache__/
+*.pyc
+
+# Carpetas de datos generados y logs
+resultados/
+salida/

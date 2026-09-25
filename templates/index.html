@@ -6,47 +6,116 @@
     <link rel="stylesheet" href="/static/style.css">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        if (localStorage.getItem("lubrisol_logged") !== "yes") {
+            window.location.replace("/login");
+        }
+    </script>
+
+    <style>
+        .log-panel {
+            position: fixed; top: 0; left: -400px; width: 400px; height: 100vh;
+            background-color: #2c3e50; color: #ecf0f1; box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            transition: left 0.3s ease; z-index: 1000; display: flex; flex-direction: column;
+        }
+        .log-panel.open { left: 0; }
+        .log-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; background-color: #1a252f; border-bottom: 1px solid #34495e;
+        }
+        .log-header h3 { margin: 0; font-size: 16px; color: #2ecc71; }
+        .log-header button { background: none; border: none; color: white; cursor: pointer; font-size: 18px; }
+        .log-content { padding: 15px; overflow-y: auto; flex: 1; }
+        .log-entry { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #34495e; font-size: 14px; word-wrap: break-word; line-height: 1.4; }
+        .log-entry a { color: #3498db; text-decoration: none; font-weight: bold; }
+        
+        /* BOTÓN FLOTANTE MOVIDO A LA DERECHA */
+        .btn-flotante {
+            position: fixed; bottom: 20px; right: 20px; background-color: #006633;
+            color: white; border: none; padding: 12px 20px; border-radius: 50px;
+            cursor: pointer; z-index: 999; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-weight: bold;
+        }
+        .btn-flotante:hover { background-color: #00994d; }
+
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; 
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); 
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: #ffffff; padding: 30px; border-radius: 12px;
+            width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .modal-content h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #006633; padding-bottom: 10px; }
+        .close-modal {
+            position: absolute; top: 15px; right: 20px; font-size: 24px;
+            cursor: pointer; color: #c0392b; font-weight: bold;
+        }
+        .close-modal:hover { color: #e74c3c; }
+        .modal-content label { font-weight: bold; color: #34495e; display: block; margin-top: 10px; text-align: left; }
+        .modal-content input, .modal-content textarea {
+            width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #bdc3c7;
+            border-radius: 6px; box-sizing: border-box; font-family: inherit; transition: all 0.3s ease;
+        }
+        .modal-content input:focus, .modal-content textarea:focus {
+            border-color: #006633; outline: none; box-shadow: 0 0 8px rgba(0, 102, 51, 0.3);
+        }
+    </style>
 </head>
 <body>
-    <!-- Sidebar con logo -->
-    <div class="sidebar">
+    <div class="sidebar" style="display: flex; flex-direction: column;">
         <img src="/static/LogoNegro.png" alt="Lubrisol">
         <button onclick="openTab(event, 'siigo')">📊 Consultas Siigo</button>
         <button onclick="openTab(event, 'detrack')">🚚 Acciones Detrack</button>
         <button onclick="openTab(event, 'empleados')">👥 Portal Empleados</button>
+        
+        <div style="flex-grow: 1;"></div>
+        <!-- BOTÓN DE CERRAR SESIÓN ARREGLADO Y CENTRADO -->
+        <button onclick="cerrarSesion()" style="background-color: #c0392b; color: white; width: 85%; margin: 20px auto; border-radius: 8px; font-weight: bold; padding: 12px; display: block; text-align: center;">🚪 Cerrar Sesión</button>
     </div>
 
-    <!-- Contenido principal -->
     <div class="main">
-        <!-- Hero banner reducido -->
-        <div class="hero">
-            <h2>Integración Siigo ↔ Detrack</h2>
-        </div>
+        <div class="hero"><h2>Integración Siigo ↔ Detrack</h2></div>
 
-        <!-- Pestaña Siigo -->
         <div id="siigo" class="tab-content active">
             <div class="card">
                 <h2>Consultas Siigo</h2>
                 <img src="/static/LubrisolAguita.jpg" alt="Facturación Siigo">
+                
                 <label>Fecha (YYYY-MM-DD):</label>
                 <input type="date" id="fecha_siigo">
                 <button class="btn-exito" onclick="consultarFacturasFecha()">Consultar por fecha 📅</button>
                 <button class="btn-info" onclick="consultarFacturasHoy()">Consultar facturas de hoy 📊</button>
+                
+                <hr style="margin: 15px 0; border: 1px solid #ddd;">
+                <label>Fecha Inicio (YYYY-MM-DD):</label>
+                <input type="date" id="fecha_inicio_siigo">
+                <label>Fecha Fin (YYYY-MM-DD):</label>
+                <input type="date" id="fecha_fin_siigo">
+                <button class="btn-exito" onclick="consultarFacturasRango()">Consultar rango de fechas 📅</button>
+                <hr style="margin: 15px 0; border: 1px solid #ddd;">
+
                 <label>Número de factura (FV):</label>
                 <input type="text" id="factura_siigo">
                 <button class="btn-exito" onclick="consultarFacturaPuntual()">Consultar factura puntual 🔎</button>
-                <!-- Botón nuevo para listar resultados -->
                 <button class="btn-info" onclick="listarResultados()">Ver todos los Excel generados 📂</button>
-                <table id="tablaSiigo">
-                    <thead style="display:none;">
-                        <tr><th>Número</th><th>Cliente</th><th>Valor</th><th>Estado</th></tr>
+                
+                <table id="tablaSiigo" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead id="tablaSiigoHead" style="display: none;">
+                        <tr style="background: #006633; color: white;">
+                            <th style="padding: 10px; text-align: left;">Número</th>
+                            <th style="padding: 10px; text-align: left;">Cliente</th>
+                            <th style="padding: 10px; text-align: left;">Valor</th>
+                            <th style="padding: 10px; text-align: left;">Estado</th>
+                        </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="tablaSiigoBody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Pestaña Detrack -->
         <div id="detrack" class="tab-content">
             <div class="card">
                 <h2>Acciones Detrack</h2>
@@ -54,49 +123,48 @@
                 <button class="btn-info" onclick="generarExcelSinDetrack()">Generar Excel sin subir 📁</button>
                 <button class="btn-exito" onclick="generarExcelYDetrack()">Generar Excel y subir 🚚</button>
                 <button class="btn-peligro" onclick="subirDetrack()">Subir último Excel a Detrack ⬆</button>
+                
                 <label>Fecha (YYYY-MM-DD):</label>
                 <input type="date" id="fecha_detrack">
                 <button class="btn-info" onclick="consultarDetrackFecha()">Consultar órdenes por fecha 📦</button>
+                
                 <label>Número de DO (Detrack):</label>
                 <input type="text" id="do_detrack">
                 <button class="btn-exito" onclick="consultarDetrackPuntual()">Consultar orden puntual 🔎</button>
 
                 <h3>Crear nueva Orden/Job</h3>
-                <!-- Botón que abre/cierra el formulario -->
-                <button class="btn-exito" onclick="toggleFormDetrack()">➕ Nueva Orden</button>
+                <!-- TEXTO ARREGLADO: Solo dice "Nueva Orden" -->
+                <button class="btn-exito" onclick="abrirModalDetrack()">➕ Nueva Orden</button>
 
-                <!-- Formulario oculto por defecto -->
-                <div id="formDetrack" style="display:none; margin-top:10px;">
-                    <label>Número de orden (DO):</label>
-                    <input type="text" id="do_number">
+                <div id="modalDetrack" class="modal">
+                    <div class="modal-content">
+                        <span class="close-modal" onclick="cerrarModalDetrack()">✖</span>
+                        <h3>📦 Crear Job en Detrack</h3>
+                        
+                        <label>Número de orden (DO):</label>
+                        <input type="text" id="do_number" placeholder="Ej: DO-12345">
 
-                    <label>Fecha:</label>
-                    <input type="date" id="date_detrack">
+                        <label>Fecha:</label>
+                        <input type="date" id="date_detrack">
 
-                    <label>Dirección:</label>
-                    <input type="text" id="address_detrack">
+                        <label>Dirección:</label>
+                        <input type="text" id="address_detrack" placeholder="Dirección de entrega">
 
-                    <label>Cliente:</label>
-                    <input type="text" id="customer_detrack">
+                        <label>Cliente:</label>
+                        <input type="text" id="customer_detrack" placeholder="Nombre del cliente">
 
-                    <label>Item details:</label>
-                    <textarea id="items_detrack" placeholder="Lista de productos"></textarea>
+                        <label>Item details (Productos):</label>
+                        <textarea id="items_detrack" placeholder="Lista de productos" style="height: 80px; margin-bottom: 20px;"></textarea>
 
-                    <button class="btn-exito" onclick="crearJobDetrack()">Crear Job en Detrack 📝</button>
+                        <button class="btn-exito" style="width: 100%; font-size: 16px; margin-top: 10px;" onclick="crearJobDetrack()">Crear Job en Detrack 📝</button>
+                    </div>
                 </div>
 
-                <!-- Botón nuevo para listar salida -->
+                <br><br>
                 <button class="btn-info" onclick="listarSalida()">Ver trazabilidad completa 📝</button>
-                <table id="tablaDetrack">
-                    <thead style="display:none;">
-                        <tr><th>DO</th><th>Fecha</th><th>Cliente</th><th>Estado</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
             </div>
         </div>
 
-        <!-- Pestaña Empleados -->
         <div id="empleados" class="tab-content">
             <div class="card">
                 <h2>Portal Empleados</h2>
@@ -106,96 +174,155 @@
         </div>
     </div>
 
-    <!-- Registro de acciones fijo abajo -->
-    <div id="logArea"></div>
+    <button class="btn-flotante" onclick="toggleLogPanel()">📜 Ver Consola</button>
 
-    <!-- Footer corporativo -->
+    <div id="logPanel" class="log-panel">
+        <div class="log-header">
+            <h3>📝 Registro de acciones</h3>
+            <button onclick="toggleLogPanel()">❌</button>
+        </div>
+        <div id="sideLogArea" class="log-content"></div>
+    </div>
+
     <footer>
         <img src="/static/LogoNegro.png" alt="Lubrisol">
         <p>© 2026 Lubrisol - Automatización Corporativa</p>
     </footer>
 
-        <!-- Scripts -->
     <script>
         function openTab(evt, tabName) {
             const contents = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < contents.length; i++) {
-                contents[i].classList.remove("active");
-            }
+            for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
             const buttons = document.querySelectorAll(".sidebar button");
             buttons.forEach(btn => btn.classList.remove("active"));
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
         }
 
-        // Ajuste: logArea acepta HTML
-        function logMessage(msg) {
-            const logArea = document.getElementById("logArea");
-            logArea.innerHTML += msg + "<br>";
+        function toggleLogPanel() {
+            document.getElementById("logPanel").classList.toggle("open");
         }
 
-        // Mostrar/ocultar formulario de nueva orden
-        function toggleFormDetrack() {
-            const form = document.getElementById("formDetrack");
-            if (form.style.display === "none") {
-                form.style.display = "block";
-            } else {
-                form.style.display = "none";
+        function logMessage(msg) {
+            const logArea = document.getElementById("sideLogArea");
+            const panel = document.getElementById("logPanel");
+            const newLog = document.createElement("div");
+            newLog.className = "log-entry";
+            newLog.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${msg}`;
+            logArea.prepend(newLog);
+            if (!panel.classList.contains("open")) panel.classList.add("open");
+        }
+
+        function abrirModalDetrack() {
+            document.getElementById("modalDetrack").style.display = "flex";
+        }
+
+        function cerrarModalDetrack() {
+            document.getElementById("modalDetrack").style.display = "none";
+        }
+
+        function cerrarSesion() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("/login");
+        }
+
+        function renderTablaSiigo(datos, total) {
+            const thead = document.getElementById("tablaSiigoHead");
+            const tbody = document.getElementById("tablaSiigoBody");
+            tbody.innerHTML = ""; 
+            if (!datos || datos.length === 0) {
+                thead.style.display = "none";
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 15px; color: #666;">No se encontraron registros para mostrar en pantalla.</td></tr>`;
+                return;
+            }
+            thead.style.display = "table-header-group"; 
+            datos.forEach(fac => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight:bold;">${fac.numero}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${fac.cliente}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${fac.valor}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; color:#006633; font-weight:bold;">✅ ${fac.estado}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            if (total > datos.length) {
+                const trAviso = document.createElement("tr");
+                trAviso.innerHTML = `<td colspan="4" style="text-align: center; padding: 12px; font-weight: bold; color: #004080; background-color: #e3f2fd; border-bottom: 1px solid #ddd;">Mostrando los primeros ${datos.length} registros de ${total} totales.<br>¡Descargue el archivo Excel para ver el listado completo!</td>`;
+                tbody.appendChild(trAviso);
             }
         }
 
-        // Consultas Siigo
+        function setTablaCargando() {
+            const thead = document.getElementById("tablaSiigoHead");
+            const tbody = document.getElementById("tablaSiigoBody");
+            thead.style.display = "none";
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; font-weight: bold; color: #004080;">⏳ Consultando datos en Siigo...</td></tr>`;
+        }
+
         async function consultarFacturasHoy() {
+            setTablaCargando();
             const res = await fetch("/consultar_facturas_hoy");
             const data = await res.json();
             if (data.status === "ok") {
                 logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Error al generar Excel");
-            }
+                renderTablaSiigo(data.datos_tabla, data.total);
+            } else { logMessage("Error al generar Excel"); renderTablaSiigo([], 0); }
         }
 
         async function consultarFacturasFecha() {
             const fecha = document.getElementById("fecha_siigo").value;
+            if (!fecha) { logMessage("❌ Seleccione una fecha."); return; }
+            setTablaCargando();
             const res = await fetch(`/consultar_facturas_fecha?fecha=${fecha}`);
             const data = await res.json();
             if (data.status === "ok") {
                 logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Error al consultar facturas");
-            }
+                renderTablaSiigo(data.datos_tabla, data.total);
+            } else { logMessage("Error al consultar facturas"); renderTablaSiigo([], 0); }
+        }
+
+        async function consultarFacturasRango() {
+            const fechaInicio = document.getElementById("fecha_inicio_siigo").value;
+            const fechaFin = document.getElementById("fecha_fin_siigo").value;
+            if (!fechaInicio || !fechaFin) { logMessage("❌ Debe seleccionar fechas."); return; }
+            logMessage(`⏳ Consultando facturas del ${fechaInicio} al ${fechaFin}...`);
+            setTablaCargando();
+            try {
+                const res = await fetch(`/consultar_facturas_rango?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`);
+                const data = await res.json();
+                if (data.status === "ok") {
+                    logMessage(`✅ Rango consultado. Total: ${data.total} facturas. <br> Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+                    renderTablaSiigo(data.datos_tabla, data.total);
+                } else { logMessage("❌ Error al consultar."); renderTablaSiigo([], 0); }
+            } catch (error) { logMessage("❌ Error."); renderTablaSiigo([], 0); }
         }
 
         async function consultarFacturaPuntual() {
             const numero = document.getElementById("factura_siigo").value;
+            if (!numero) { logMessage("❌ Ingrese factura."); return; }
+            setTablaCargando();
             const res = await fetch(`/consultar_factura_puntual?numero=${numero}`);
             const data = await res.json();
             if (data.status === "ok") {
                 logMessage(`Factura exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Factura no encontrada");
-            }
+                renderTablaSiigo(data.datos_tabla, data.total);
+            } else { logMessage("Factura no encontrada"); renderTablaSiigo([], 0); }
         }
 
-        // Acciones Detrack
         async function generarExcelSinDetrack() {
             const res = await fetch("/generar_excel_sin_detrack");
             const data = await res.json();
-            if (data.status === "ok") {
-                logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Error al generar Excel");
-            }
+            if (data.status === "ok") logMessage(`Excel generado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            else logMessage("Error");
         }
 
         async function generarExcelYDetrack() {
             const res = await fetch("/generar_excel_y_detrack");
             const data = await res.json();
-            if (data.status === "ok") {
-                logMessage(`Excel generado y enviado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Error al enviar a Detrack");
-            }
+            if (data.status === "ok") logMessage(`Excel generado y enviado: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            else logMessage("Error");
         }
 
         async function subirDetrack() {
@@ -208,22 +335,16 @@
             const fecha = document.getElementById("fecha_detrack").value;
             const res = await fetch(`/consultar_detrack_fecha?fecha=${fecha}`);
             const data = await res.json();
-            if (data.status === "ok") {
-                logMessage(`Órdenes exportadas: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Error al consultar órdenes");
-            }
+            if (data.status === "ok") logMessage(`Órdenes exportadas: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            else logMessage("Error");
         }
 
         async function consultarDetrackPuntual() {
             const numero = document.getElementById("do_detrack").value;
             const res = await fetch(`/consultar_detrack_puntual?numero=${numero}`);
             const data = await res.json();
-            if (data.status === "ok") {
-                logMessage(`Orden exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            } else {
-                logMessage("Orden no encontrada");
-            }
+            if (data.status === "ok") logMessage(`Orden exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+            else logMessage("Error");
         }
 
         async function crearJobDetrack() {
@@ -234,50 +355,33 @@
                 customer: document.getElementById("customer_detrack").value,
                 items: document.getElementById("items_detrack").value
             };
-
             try {
-                const res = await fetch("/crear_job_detrack", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(datos)
-                });
+                const res = await fetch("/crear_job_detrack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos) });
                 const data = await res.json();
                 logMessage("Resultado creación Job: " + JSON.stringify(data));
-            } catch (e) {
-                logMessage("Error al crear la orden en Detrack: " + e);
-            }
+                cerrarModalDetrack(); 
+            } catch (e) { logMessage("Error: " + e); }
         }
 
-        // Nuevas funciones para listar archivos
         async function listarResultados() {
             const res = await fetch("/listar_resultados");
             const data = await res.json();
             if (data.archivos && data.archivos.length > 0) {
-                logMessage("📊 Archivos de facturas disponibles:");
-                data.archivos.forEach(archivo => {
-                    logMessage(`<a href="/resultados/${archivo}" target="_blank">${archivo}</a>`);
-                });
-            } else {
-                logMessage("No hay archivos en resultados.");
-            }
+                logMessage("📊 Archivos disponibles:");
+                data.archivos.forEach(a => logMessage(`<a href="/resultados/${a}" target="_blank">${a}</a>`));
+            } else logMessage("No hay archivos.");
         }
 
         async function listarSalida() {
             const res = await fetch("/listar_salida");
             const data = await res.json();
             if (data.archivos && data.archivos.length > 0) {
-                logMessage("📝 Registro de cambios disponible:");
-                data.archivos.forEach(archivo => {
-                    logMessage(`<a href="/salida/${archivo}" target="_blank">${archivo}</a>`);
-                });
-            } else {
-                logMessage("No hay archivos en salida.");
-            }
+                logMessage("📝 Registro disponible:");
+                data.archivos.forEach(a => logMessage(`<a href="/salida/${a}" target="_blank">${a}</a>`));
+            } else logMessage("No hay archivos.");
         }
 
-        function abrirPortal() {
-            window.open("/portal_empleados", "_blank");
-        }
+        function abrirPortal() { window.open("/portal_empleados", "_blank"); }
     </script>
 </body>
 </html>

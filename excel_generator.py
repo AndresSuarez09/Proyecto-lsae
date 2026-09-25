@@ -70,6 +70,7 @@ def resolver_cliente_por_identificacion(identificacion, token, clientes_resuelto
     except Exception:
         clientes_cache[identificacion] = (f"ID: {identificacion}", None, None)
         return f"ID: {identificacion}", None, None
+
 # 🔧 Obtener diccionario de vendedores
 def obtener_diccionario_vendedores(token):
     url = "https://api.siigo.com/v1/users"
@@ -116,18 +117,24 @@ def aplicar_formato_excel(ruta, columnas_ordenadas):
         length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
         ws.column_dimensions[column_cells[0].column_letter].width = min(length + 2, 50)
 
+    # Identificamos las columnas que deben llevar formato de dinero (dinámicamente)
+    columnas_moneda = ["Precio Unitario", "Total Item", "Total Factura", "Saldo"]
+    indices_moneda = [idx for idx, col_name in enumerate(columnas_ordenadas, start=1) if col_name in columnas_moneda]
+
     # Formato monetario y relleno alterno
     for idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(columnas_ordenadas)), start=2):
         if idx % 2 == 0:  # filas pares → gris claro
             for cell in row:
                 cell.fill = fill_gray
+                
         for cell in row:
-            if cell.column_letter in ["G", "H"]:  # columnas Total y Saldo
+            if cell.column in indices_moneda:
                 cell.number_format = '"$"#,##0.00'
 
     wb.save(ruta)
     print(f"✅ Formato aplicado: {ruta}")
-# 🔧 Generar Excel
+
+# 🔧 Generar Excel (Lógica "Aplanada" por Ítem)
 def generar_excel(facturas, token, clientes_resueltos=None):
     if not facturas:
         print("⚠️ No hay facturas para generar el Excel.")
@@ -149,25 +156,18 @@ def generar_excel(facturas, token, clientes_resueltos=None):
     print(f"📁 Generando archivo Excel (borrador) en: {ruta_fija}")
 
     registros = []
+    
+    # Iteramos sobre cada factura
     for f in facturas:
         if isinstance(f, dict):
-            productos, codigos = [], []
-            for item in f.get("items", []):
-                if isinstance(item, dict):
-                    nombre = item.get("description", "Sin nombre")
-                    cantidad = item.get("quantity", 0)
-                    precio = item.get("price", 0)
-                    total = item.get("total", 0)
-                    productos.append(f"{nombre} ({cantidad} x {precio:,}) = {total:,}")
-                    codigos.append(str(item.get("code", "")))
-
-            # Cliente
+            
+            # --- DATOS GENERALES DE LA FACTURA (CABECERA) ---
             cliente_obj = f.get("customer", {})
             clave_cliente = cliente_obj.get("id") or cliente_obj.get("identification")
             cliente_nombre = clientes_resueltos.get(clave_cliente, "SIN NOMBRE")
             nit_cliente = cliente_obj.get("identification")
 
-            # Dirección: concatenar partes si existen
+            # Dirección
             direccion_obj = cliente_obj.get("address", {})
             direccion_parts = []
             if direccion_obj.get("address"):
@@ -178,7 +178,7 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                 direccion_parts.append(direccion_obj.get("postal_code").strip())
             direccion_final = " ".join(direccion_parts) if direccion_parts else None
 
-            # Si no hay dirección en la factura, consultar API
+            # Si no hay dirección, consultar API
             if not direccion_final:
                 nombre_resuelto, nit_resuelto, direccion_resuelta = resolver_cliente_por_identificacion(nit_cliente, token, clientes_resueltos)
                 if nit_resuelto:
@@ -193,33 +193,78 @@ def generar_excel(facturas, token, clientes_resueltos=None):
             email_vendedor = vendedor_info.get("email", "")
             id_vendedor = vendedor_info.get("identification", "")
 
-            # Factura
+            # Números de documento
             numero_fv = str(f.get("number")) if f.get("number") else None
             numero_be = numero_fv.replace("FV", "BE") if numero_fv else None
+            
+            total_factura = f.get("total", 0)
+            saldo_factura = f.get("balance", 0)
+            fecha_factura = f.get("date")
 
-            registros.append({
-                "FV": numero_fv,
-                "BE": numero_be,
-                "Fecha": f.get("date"),
-                "company_name": cliente_nombre,
-                "deliver_to_collect_from": cliente_nombre,
-                "address": direccion_final,
-                "city": direccion_obj.get("city", {}).get("city_name") if direccion_obj else None,
-                "postal_code": direccion_obj.get("postal_code") if direccion_obj else None,
-                "Identificación": nit_cliente,
-                "Vendedor": vendedor_nombre,
-                "Total": f.get("total"),
-                "Saldo": f.get("balance"),
-                "Productos": "; ".join(productos),
-                "Email vendedor": email_vendedor,
-                "ID vendedor": id_vendedor,
-                "Código producto": "; ".join(codigos)
-            })
+            # --- DESGLOSE POR PRODUCTO (ÍTEM) ---
+            items = f.get("items", [])
+            
+            if not items:
+                # Factura vacía (Crea una fila en blanco para no perder el registro)
+                registros.append({
+                    "FV": numero_fv,
+                    "BE": numero_be,
+                    "Fecha": fecha_factura,
+                    "Identificación": nit_cliente,
+                    "company_name": cliente_nombre,
+                    "deliver_to_collect_from": cliente_nombre,
+                    "address": direccion_final,
+                    "city": direccion_obj.get("city", {}).get("city_name") if direccion_obj else None,
+                    "postal_code": direccion_obj.get("postal_code") if direccion_obj else None,
+                    "Vendedor": vendedor_nombre,
+                    "Código producto": "",
+                    "Productos": "Sin productos",
+                    "Cantidad": 0,
+                    "Precio Unitario": 0,
+                    "Total Item": 0,
+                    "Total Factura": total_factura,
+                    "Saldo": saldo_factura,
+                    "Email vendedor": email_vendedor,
+                    "ID vendedor": id_vendedor
+                })
+            else:
+                # Escribimos UNA FILA por cada producto
+                for item in items:
+                    if isinstance(item, dict):
+                        nombre_item = item.get("description", "Sin nombre")
+                        cantidad = item.get("quantity", 0)
+                        precio = item.get("price", 0)
+                        total_item = item.get("total", 0)
+                        codigo = str(item.get("code", ""))
 
+                        registros.append({
+                            "FV": numero_fv,
+                            "BE": numero_be,
+                            "Fecha": fecha_factura,
+                            "Identificación": nit_cliente,
+                            "company_name": cliente_nombre,
+                            "deliver_to_collect_from": cliente_nombre,
+                            "address": direccion_final,
+                            "city": direccion_obj.get("city", {}).get("city_name") if direccion_obj else None,
+                            "postal_code": direccion_obj.get("postal_code") if direccion_obj else None,
+                            "Vendedor": vendedor_nombre,
+                            "Código producto": codigo,
+                            "Productos": nombre_item,
+                            "Cantidad": cantidad,
+                            "Precio Unitario": precio,
+                            "Total Item": total_item,
+                            "Total Factura": total_factura,
+                            "Saldo": saldo_factura,
+                            "Email vendedor": email_vendedor,
+                            "ID vendedor": id_vendedor
+                        })
+
+    # Nuevo orden de columnas adaptado para leer los ítems fácilmente
     columnas_ordenadas = [
-        "FV", "BE", "Fecha", "company_name", "deliver_to_collect_from",
-        "address", "city", "postal_code", "Identificación", "Vendedor",
-        "Total", "Saldo", "Productos", "Email vendedor", "ID vendedor", "Código producto"
+        "FV", "BE", "Fecha", "Identificación", "company_name", "deliver_to_collect_from",
+        "address", "city", "postal_code", "Vendedor", 
+        "Código producto", "Productos", "Cantidad", "Precio Unitario", "Total Item", 
+        "Total Factura", "Saldo", "Email vendedor", "ID vendedor"
     ]
 
     df = pd.DataFrame(registros)
@@ -250,5 +295,5 @@ def generar_excel(facturas, token, clientes_resueltos=None):
     df.to_excel(ruta_incremental, index=False)
     aplicar_formato_excel(ruta_incremental, columnas_ordenadas)
 
-    print("✅ Archivos Excel generados con formato aplicado.")
+    print("✅ Archivos Excel generados con formato de productos desglosados.")
     return os.path.basename(ruta_fija)
