@@ -133,6 +133,23 @@ def consultar_factura_puntual(numero: str):
 # ----------------------------
 # Endpoints Detrack
 # ----------------------------
+def preparar_datos_tabla_detrack(ordenes, limite=100):
+    datos = []
+    if not ordenes: return datos
+    for ord in ordenes[:limite]:
+        if not isinstance(ord, dict): continue
+        # Extraemos los datos dependiendo de cómo los devuelva tu API de Detrack
+        numero = ord.get("do_number", ord.get("DO Number", ord.get("Tracking No", "N/A")))
+        cliente = ord.get("deliver_to_collect_from", ord.get("Deliver To / Collect From", ord.get("Customer", "N/A")))
+        estado = ord.get("primary_job_status", ord.get("Status", "N/A"))
+        
+        datos.append({
+            "numero": numero,
+            "cliente": str(cliente),
+            "estado": str(estado).capitalize()
+        })
+    return datos
+
 @app.get("/generar_excel_y_detrack")
 def generar_excel_y_detrack():
     token = obtener_token_siigo()
@@ -163,13 +180,15 @@ def subir_detrack():
 def consultar_detrack_por_fecha(fecha: str):
     ordenes = consultar_detrack_fecha(fecha)
     ruta_excel = generar_excel_detrack(ordenes)
-    return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(ordenes)}
+    datos_tabla = preparar_datos_tabla_detrack(ordenes) if ordenes else []
+    return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(ordenes), "datos_tabla": datos_tabla}
 
 @app.get("/consultar_detrack_puntual")
 def consultar_detrack_puntual(numero: str):
     orden = consultar_detrack_numero(numero)
     ruta_excel = generar_excel_detrack([orden]) if orden else None
-    return {"status": "ok" if orden else "error", "archivo": f"/resultados/{ruta_excel}" if ruta_excel else None, "orden": orden}
+    datos_tabla = preparar_datos_tabla_detrack([orden]) if orden else []
+    return {"status": "ok" if orden else "error", "archivo": f"/resultados/{ruta_excel}" if ruta_excel else None, "datos_tabla": datos_tabla, "total": 1 if orden else 0}
 
 @app.post("/crear_job_detrack")
 async def crear_job_detrack(request: Request):

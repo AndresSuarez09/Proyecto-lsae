@@ -132,6 +132,19 @@
                 <input type="text" id="do_detrack">
                 <button class="btn-exito" onclick="consultarDetrackPuntual()">Consultar orden puntual 🔎</button>
 
+                <!-- NUEVA TABLA DETRACK AQUI -->
+                <table id="tablaDetrack" style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px;">
+                    <thead id="tablaDetrackHead" style="display: none;">
+                        <tr style="background: #003366; color: white;">
+                            <th style="padding: 10px; text-align: left;">DO Number</th>
+                            <th style="padding: 10px; text-align: left;">Cliente / Destino</th>
+                            <th style="padding: 10px; text-align: left;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaDetrackBody"></tbody>
+                </table>
+                <!-- FIN TABLA DETRACK -->
+
                 <h3>Crear nueva Orden/Job</h3>
                 <!-- TEXTO ARREGLADO: Solo dice "Nueva Orden" -->
                 <button class="btn-exito" onclick="abrirModalDetrack()">➕ Nueva Orden</button>
@@ -331,20 +344,63 @@
             logMessage(data.mensaje);
         }
 
+        // --- NUEVAS FUNCIONES PARA LA TABLA DETRACK ---
+        function renderTablaDetrack(datos, total) {
+            const thead = document.getElementById("tablaDetrackHead");
+            const tbody = document.getElementById("tablaDetrackBody");
+            tbody.innerHTML = ""; 
+            if (!datos || datos.length === 0) {
+                thead.style.display = "none";
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 15px; color: #666;">No se encontraron registros en Detrack.</td></tr>`;
+                return;
+            }
+            thead.style.display = "table-header-group"; 
+            datos.forEach(ord => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight:bold;">${ord.numero}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">${ord.cliente}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd; color:#006633; font-weight:bold;">🚚 ${ord.estado}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setTablaDetrackCargando() {
+            const thead = document.getElementById("tablaDetrackHead");
+            const tbody = document.getElementById("tablaDetrackBody");
+            thead.style.display = "none";
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 20px; font-weight: bold; color: #004080;">⏳ Consultando datos en Detrack...</td></tr>`;
+        }
+
         async function consultarDetrackFecha() {
             const fecha = document.getElementById("fecha_detrack").value;
+            if (!fecha) { logMessage("❌ Seleccione una fecha."); return; }
+            setTablaDetrackCargando();
             const res = await fetch(`/consultar_detrack_fecha?fecha=${fecha}`);
             const data = await res.json();
-            if (data.status === "ok") logMessage(`Órdenes exportadas: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            else logMessage("Error");
+            if (data.status === "ok") { 
+                logMessage(`Órdenes exportadas: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+                renderTablaDetrack(data.datos_tabla, data.total);
+            } else { 
+                logMessage("Error al consultar Detrack");
+                renderTablaDetrack([], 0);
+            }
         }
 
         async function consultarDetrackPuntual() {
             const numero = document.getElementById("do_detrack").value;
+            if (!numero) { logMessage("❌ Ingrese número de DO."); return; }
+            setTablaDetrackCargando();
             const res = await fetch(`/consultar_detrack_puntual?numero=${numero}`);
             const data = await res.json();
-            if (data.status === "ok") logMessage(`Orden exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
-            else logMessage("Error");
+            if (data.status === "ok") { 
+                logMessage(`Orden exportada: <a href="${data.archivo}" target="_blank">${data.archivo}</a>`);
+                renderTablaDetrack(data.datos_tabla, data.total);
+            } else { 
+                logMessage("Error: Orden no encontrada");
+                renderTablaDetrack([], 0);
+            }
         }
 
         async function crearJobDetrack() {
