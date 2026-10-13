@@ -84,26 +84,17 @@ def consultar_facturas_fecha(fecha: str = Query(..., description="Fecha en forma
     token = obtener_token_siigo()
     facturas = consultar_facturas_siigo(token, fecha)
     clientes = resolver_clientes(token, facturas)
-    
-    # 1. Datos primero
     datos_tabla = preparar_datos_tabla(facturas, clientes)
-    # 2. Excel después
     ruta_excel = generar_excel(facturas, token, clientes)
-    
     return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(facturas), "datos_tabla": datos_tabla}
 
 @app.get("/consultar_facturas_rango")
-def consultar_facturas_rango(
-    fecha_inicio: str = Query(..., description="Fecha inicial YYYY-MM-DD"),
-    fecha_fin: str = Query(..., description="Fecha final YYYY-MM-DD")
-):
+def consultar_facturas_rango(fecha_inicio: str = Query(...), fecha_fin: str = Query(...)):
     token = obtener_token_siigo()
     facturas = consultar_facturas_rango_siigo(token, fecha_inicio, fecha_fin)
     clientes = resolver_clientes(token, facturas)
-    
     datos_tabla = preparar_datos_tabla(facturas, clientes)
     ruta_excel = generar_excel(facturas, token, clientes)
-    
     return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(facturas), "datos_tabla": datos_tabla}
 
 @app.get("/consultar_facturas_hoy")
@@ -113,10 +104,8 @@ def consultar_facturas_hoy():
     fecha = hoy_utc.strftime("%Y-%m-%d")
     facturas = consultar_facturas_siigo(token, fecha)
     clientes = resolver_clientes(token, facturas)
-    
     datos_tabla = preparar_datos_tabla(facturas, clientes)
     ruta_excel = generar_excel(facturas, token, clientes)
-    
     return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(facturas), "datos_tabla": datos_tabla}
 
 @app.get("/consultar_factura_puntual")
@@ -124,10 +113,8 @@ def consultar_factura_puntual(numero: str):
     token = obtener_token_siigo()
     facturas = consultar_factura_por_numero(token, numero)
     clientes = resolver_clientes(token, facturas)
-    
     datos_tabla = preparar_datos_tabla(facturas, clientes)
     ruta_excel = generar_excel(facturas, token, clientes)
-    
     return {"status": "ok", "archivo": f"/resultados/{ruta_excel}", "total": len(facturas), "datos_tabla": datos_tabla}
 
 # ----------------------------
@@ -138,11 +125,9 @@ def preparar_datos_tabla_detrack(ordenes, limite=100):
     if not ordenes: return datos
     for ord in ordenes[:limite]:
         if not isinstance(ord, dict): continue
-        # Extraemos los datos dependiendo de cómo los devuelva tu API de Detrack
         numero = ord.get("do_number", ord.get("DO Number", ord.get("Tracking No", "N/A")))
         cliente = ord.get("deliver_to_collect_from", ord.get("Deliver To / Collect From", ord.get("Customer", "N/A")))
         estado = ord.get("primary_job_status", ord.get("Status", "N/A"))
-        
         datos.append({
             "numero": numero,
             "cliente": str(cliente),
@@ -193,21 +178,47 @@ def consultar_detrack_puntual(numero: str):
 @app.post("/crear_job_detrack")
 async def crear_job_detrack(request: Request):
     datos = await request.json()
-    fecha = datos.get("date")
+    
+    fecha = datos.get("date", "")
     if "/" in fecha:
-        dia, mes, anio = fecha.split("/")
-        fecha = f"{anio}-{mes}-{dia}"
+        try:
+            dia, mes, anio = fecha.split("/")
+            fecha = f"{anio}-{mes}-{dia}"
+        except:
+            pass
 
-    items_texto = datos.get("items", "")
-    items = [{"description": items_texto, "quantity": 1}] if items_texto else []
+    items_recibidos = datos.get("items", [])
+    items_formateados = [{"sku": i.get("sku", ""), "description": i.get("description", ""), "quantity": i.get("quantity", 1)} for i in items_recibidos]
 
-    payload = {
-        "data": {
-            "type": "Delivery", "primary_job_status": "dispatched", "open_to_marketplace": False,
-            "do_number": datos.get("do_number"), "attempt": 1, "date": fecha, "start_date": fecha,
-            "address": datos.get("address"), "deliver_to_collect_from": datos.get("customer"), "items": items
-        }
+    # Payload exacto mapeando todos los campos opcionales y obligatorios
+    job_data = {
+        "type": "Delivery", 
+        "primary_job_status": "dispatched", 
+        "open_to_marketplace": False,
+        "assign_to": datos.get("assign_to", ""),
+        "do_number": datos.get("do_number", ""), 
+        "date": fecha, 
+        "start_date": fecha,
+        "address": datos.get("address", ""), 
+        "company_name": datos.get("company_name", ""),
+        "deliver_to_collect_from": datos.get("deliver_to", ""), 
+        "phone_number": datos.get("phone", ""),
+        "invoice_number": datos.get("invoice_no", ""),
+        "payment_mode": datos.get("payment_mode", ""),
+        "order_number": datos.get("order_no", ""),
+        "instructions": datos.get("instructions", ""),
+        "job_owner": datos.get("job_owner", ""),
+        "carrier": datos.get("carrier", ""),
+        "identification_number": datos.get("identification_no", ""),
+        "items": items_formateados
     }
+
+    if datos.get("invoice_amount"): job_data["invoice_amount"] = float(datos.get("invoice_amount"))
+    if datos.get("payment_amount"): job_data["payment_amount"] = float(datos.get("payment_amount"))
+    if datos.get("pieces"): job_data["pieces"] = int(datos.get("pieces"))
+
+    payload = {"data": job_data}
+    
     resultado = upload_job(payload)
     return {"status": "ok" if resultado else "error", "resultado": resultado}
 
