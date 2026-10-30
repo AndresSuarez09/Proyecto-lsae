@@ -41,35 +41,51 @@ def main():
         
         do_number = primera_fila.get("BE")
         if pd.isna(do_number) or str(do_number).strip() == "":
-            do_number = f"BE-{fv}"
+            do_number = f"BE00{fv}" # Respaldo por si falla el Excel
         
-        # Construir la lista dinámica de productos para esta factura
+        # Construir la lista dinámica de productos y sumar piezas
         items_list = []
+        total_piezas = 0
+        
         for _, fila in grupo.iterrows():
             producto = str(fila.get("Productos", "")).strip()
+            sku = str(fila.get("Código producto", "")).strip() # ✅ Corrección 5: Atrapar SKU
+            if sku.lower() == "nan": sku = ""
+            
             if producto and producto.lower() != "nan" and producto != "Sin productos":
                 cantidad_cruda = fila.get("Cantidad", 1)
                 try:
                     cantidad = int(float(cantidad_cruda)) if pd.notna(cantidad_cruda) else 1
                 except ValueError:
                     cantidad = 1
+                
+                total_piezas += cantidad # ✅ Corrección 4: Sumar piezas
                     
                 items_list.append({
+                    "sku": sku,
                     "description": producto,
                     "quantity": cantidad
                 })
         
         # Respaldo por si la factura no tiene productos registrados
         if not items_list:
-            items_list.append({"description": "Sin descripción", "quantity": 1})
+            items_list.append({"sku": "", "description": "Sin descripción", "quantity": 1})
+            total_piezas = 1
+
+        # ✅ Extraer teléfono real desde el Excel
+        telefono = str(primera_fila.get("Teléfono", "")) if pd.notna(primera_fila.get("Teléfono")) else ""
+        if telefono.lower() == "nan" or telefono == "": 
+            telefono = str(primera_fila.get("Identificación", "")) # Respaldo si no hay teléfono
 
         # Armar el paquete de datos unificado
         datos = {
             "do_number": str(do_number).strip(),
             "date": str(primera_fila.get("Fecha", "")).split()[0] if pd.notna(primera_fila.get("Fecha")) else "",
             "address": str(primera_fila.get("address", "")) if pd.notna(primera_fila.get("address")) else "",
-            "deliver_to_collect_from": str(primera_fila.get("company_name", "")) if pd.notna(primera_fila.get("company_name")) else "",
-            "phone_number": str(fv).strip(),
+            "company_name": str(primera_fila.get("company_name", "")) if pd.notna(primera_fila.get("company_name")) else "",
+            "deliver_to_collect_from": str(primera_fila.get("deliver_to_collect_from", "")) if pd.notna(primera_fila.get("deliver_to_collect_from")) else "",
+            "phone_number": telefono, # ✅ Corrección 3: Se envía el teléfono, no la factura
+            "pieces": total_piezas,   # ✅ Corrección 4: Total de artículos
             "items": items_list
         }
 

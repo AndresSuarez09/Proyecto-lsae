@@ -12,17 +12,17 @@ from openpyxl.styles import Font, Alignment, PatternFill
 clientes_cache = {}
 consultas_realizadas = 0
 
-# 🔧 Resolver cliente por identificación (incluye dirección)
+# 🔧 Resolver cliente por identificación (incluye dirección y TELÉFONO)
 def resolver_cliente_por_identificacion(identificacion, token, clientes_resueltos=None):
     global consultas_realizadas
 
     if not identificacion or not identificacion.strip() or identificacion == "222222222222":
-        return f"ID: {identificacion}", None, None
+        return f"ID: {identificacion}", None, None, None
 
     if clientes_resueltos and identificacion in clientes_resueltos:
         nombre = clientes_resueltos[identificacion]
-        clientes_cache[identificacion] = (nombre, identificacion, None)
-        return nombre, identificacion, None
+        clientes_cache[identificacion] = (nombre, identificacion, None, None)
+        return nombre, identificacion, None, None
 
     if identificacion in clientes_cache:
         return clientes_cache[identificacion]
@@ -49,6 +49,12 @@ def resolver_cliente_por_identificacion(identificacion, token, clientes_resuelto
             nombre = " ".join(nombre_raw) if isinstance(nombre_raw, list) else nombre_raw
             nit = cliente.get("identification", identificacion)
 
+            # Extraer Teléfono
+            telefono = None
+            phones_raw = cliente.get("phones", [])
+            if isinstance(phones_raw, list) and phones_raw:
+                telefono = str(phones_raw[0].get("number", ""))
+
             # Dirección completa
             direccion_obj = cliente.get("address", {})
             direccion_parts = []
@@ -61,15 +67,15 @@ def resolver_cliente_por_identificacion(identificacion, token, clientes_resuelto
             direccion = ", ".join(direccion_parts) if direccion_parts else None
 
             if nombre:
-                clientes_cache[identificacion] = (nombre, nit, direccion)
-                return nombre, nit, direccion
+                clientes_cache[identificacion] = (nombre, nit, direccion, telefono)
+                return nombre, nit, direccion, telefono
 
-        clientes_cache[identificacion] = (f"ID: {identificacion}", None, None)
-        return f"ID: {identificacion}", None, None
+        clientes_cache[identificacion] = (f"ID: {identificacion}", None, None, None)
+        return f"ID: {identificacion}", None, None, None
 
     except Exception:
-        clientes_cache[identificacion] = (f"ID: {identificacion}", None, None)
-        return f"ID: {identificacion}", None, None
+        clientes_cache[identificacion] = (f"ID: {identificacion}", None, None, None)
+        return f"ID: {identificacion}", None, None, None
 
 # 🔧 Obtener diccionario de vendedores
 def obtener_diccionario_vendedores(token):
@@ -163,28 +169,12 @@ def generar_excel(facturas, token, clientes_resueltos=None):
             
             # --- DATOS GENERALES DE LA FACTURA (CABECERA) ---
             cliente_obj = f.get("customer", {})
-            clave_cliente = cliente_obj.get("id") or cliente_obj.get("identification")
-            cliente_nombre = clientes_resueltos.get(clave_cliente, "SIN NOMBRE")
             nit_cliente = cliente_obj.get("identification")
 
-            # Dirección
-            direccion_obj = cliente_obj.get("address", {})
-            direccion_parts = []
-            if direccion_obj.get("address"):
-                direccion_parts.append(direccion_obj.get("address").strip())
-            if direccion_obj.get("city", {}).get("city_name"):
-                direccion_parts.append(direccion_obj.get("city", {}).get("city_name").strip())
-            if direccion_obj.get("postal_code"):
-                direccion_parts.append(direccion_obj.get("postal_code").strip())
-            direccion_final = " ".join(direccion_parts) if direccion_parts else None
-
-            # Si no hay dirección, consultar API
-            if not direccion_final:
-                nombre_resuelto, nit_resuelto, direccion_resuelta = resolver_cliente_por_identificacion(nit_cliente, token, clientes_resueltos)
-                if nit_resuelto:
-                    cliente_nombre = nombre_resuelto
-                    nit_cliente = nit_resuelto
-                    direccion_final = direccion_resuelta
+            # Consultamos la API para traer Nombre, NIT, Dirección y Teléfono completo
+            nombre_resuelto, nit_resuelto, direccion_final, telefono_final = resolver_cliente_por_identificacion(nit_cliente, token, clientes_resueltos)
+            
+            cliente_nombre = nombre_resuelto if nombre_resuelto else "SIN NOMBRE"
 
             # Vendedor
             vendedor_id = f.get("seller")
@@ -193,9 +183,10 @@ def generar_excel(facturas, token, clientes_resueltos=None):
             email_vendedor = vendedor_info.get("email", "")
             id_vendedor = vendedor_info.get("identification", "")
 
-            # Números de documento
-            numero_fv = str(f.get("number")) if f.get("number") else None
-            numero_be = numero_fv.replace("FV", "BE") if numero_fv else None
+            # Números de documento (Prefijo BE00 estricto)
+            numero_fv = str(f.get("number", ""))
+            solo_numeros = re.sub(r'\D', '', numero_fv) 
+            numero_be = f"BE00{solo_numeros}" if solo_numeros else None
             
             total_factura = f.get("total", 0)
             saldo_factura = f.get("balance", 0)
@@ -205,7 +196,7 @@ def generar_excel(facturas, token, clientes_resueltos=None):
             items = f.get("items", [])
             
             if not items:
-                # Factura vacía (Crea una fila en blanco para no perder el registro)
+                # Factura vacía
                 registros.append({
                     "FV": numero_fv,
                     "BE": numero_be,
@@ -214,8 +205,7 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                     "company_name": cliente_nombre,
                     "deliver_to_collect_from": cliente_nombre,
                     "address": direccion_final,
-                    "city": direccion_obj.get("city", {}).get("city_name") if direccion_obj else None,
-                    "postal_code": direccion_obj.get("postal_code") if direccion_obj else None,
+                    "Teléfono": telefono_final,
                     "Vendedor": vendedor_nombre,
                     "Código producto": "",
                     "Productos": "Sin productos",
@@ -245,8 +235,7 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                             "company_name": cliente_nombre,
                             "deliver_to_collect_from": cliente_nombre,
                             "address": direccion_final,
-                            "city": direccion_obj.get("city", {}).get("city_name") if direccion_obj else None,
-                            "postal_code": direccion_obj.get("postal_code") if direccion_obj else None,
+                            "Teléfono": telefono_final,
                             "Vendedor": vendedor_nombre,
                             "Código producto": codigo,
                             "Productos": nombre_item,
@@ -259,10 +248,10 @@ def generar_excel(facturas, token, clientes_resueltos=None):
                             "ID vendedor": id_vendedor
                         })
 
-    # Nuevo orden de columnas adaptado para leer los ítems fácilmente
+    # Nuevo orden de columnas adaptado (incluye Teléfono)
     columnas_ordenadas = [
         "FV", "BE", "Fecha", "Identificación", "company_name", "deliver_to_collect_from",
-        "address", "city", "postal_code", "Vendedor", 
+        "address", "Teléfono", "Vendedor", 
         "Código producto", "Productos", "Cantidad", "Precio Unitario", "Total Item", 
         "Total Factura", "Saldo", "Email vendedor", "ID vendedor"
     ]
@@ -295,5 +284,5 @@ def generar_excel(facturas, token, clientes_resueltos=None):
     df.to_excel(ruta_incremental, index=False)
     aplicar_formato_excel(ruta_incremental, columnas_ordenadas)
 
-    print("✅ Archivos Excel generados con formato de productos desglosados.")
+    print("✅ Archivos Excel generados con formato de productos desglosados y correcciones aplicadas.")
     return os.path.basename(ruta_fija)
