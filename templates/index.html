@@ -40,8 +40,6 @@
             <div id="siigo" class="tab-content active">
                 <div class="card">
                     <h2>Consultas Siigo</h2>
-                    
-                    <!-- IMAGEN LUBRICACIÓN -->
                     <img src="/static/LubrisolLubricacion.jpg" alt="Lubrisol" style="width:100%; max-width:400px; border-radius:8px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
 
                     <div class="fila-filtros">
@@ -151,7 +149,7 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL FLOTANTE CORRECTAMENTE AISLADO -->
     <div id="modalDetrack" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="cerrarModalDetrack()">✖</span>
@@ -215,7 +213,6 @@
             d.className = "log-entry"; 
             d.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${msg}`; 
             a.prepend(d); 
-            // APERTURA AUTOMÁTICA
             const panel = document.getElementById("logPanel");
             if (!panel.classList.contains("open")) { panel.classList.add("open"); }
         }
@@ -322,7 +319,6 @@
                 ocultarLoader(); 
                 
                 if(r.ok && d.status === "ok" && d.datos_tabla && d.datos_tabla.length > 0) { 
-                    // ENLACE DE DESCARGA RESTAURADO PARA CONSULTAS PUNTUALES DE DETRACK
                     logMessage(`✅ Orden DO '${n}' encontrada. Excel: <a href="${d.archivo}" target="_blank">Descargar Excel</a>`); 
                     const lista = Array.isArray(d.datos_tabla) ? d.datos_tabla : [d.datos_tabla]; 
                     renderTablaDetrack(lista); 
